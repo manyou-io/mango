@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Manyou\Mango\Doctrine;
 
+use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Schema\Schema;
 use Doctrine\DBAL\Schema\Table as DoctrineTable;
@@ -13,6 +14,7 @@ use Doctrine\DBAL\Schema\Table as DoctrineTable;
  * @method $this addUniqueIndex(string[] $columnNames, string|null $indexName = null, mixed[] $options = [])
  * @method $this addIndex(string[] $columnNames, string|null $indexName = null, string[] $flags = [], mixed[] $options = [])
  * @method $this addForeignKeyConstraint(string $foreignTableName, string[] $localColumnNames, string[] $foreignColumnNames, mixed[] $options = [], string|null $constraintName = null)
+ * @method string getQuotedName(AbstractPlatform $platform)
  */
 class Table
 {

@@ -20,6 +20,7 @@ use RuntimeException;
 use function array_fill;
 use function array_key_exists;
 use function array_keys;
+use function array_map;
 use function array_merge;
 use function array_values;
 use function count;
@@ -33,7 +34,6 @@ use function sprintf;
  * @method $this andWhere($where)
  * @method $this orWhere($where)
  * @method $this setMaxResults(int|null $maxResults)
- * @method $this orderBy(string $sort, string|null $order = null)
  * @method array getParameters()
  * @method Type[] getParameterTypes()
  */
@@ -76,11 +76,11 @@ class Query
         $this->platform = $this->connection->getDatabasePlatform();
     }
 
-    public function insert(string $into, array $data)
+    public function insert(string $into, array $data): self
     {
         $table = $this->schema->getTable($into);
 
-        $this->builder->insert($into);
+        $this->builder->insert($table->getQuotedName($this->platform));
 
         $values = [];
         foreach ($data as $key => $value) {
@@ -91,13 +91,31 @@ class Query
                 continue;
             }
 
-            $values[$column->getQuotedName($this->platform)] = $this->builder->createPositionalParameter(
-                $value,
-                $column->getType(),
-            );
+            $type = $column->getType();
+
+            $this->builder->createPositionalParameter($value, $type);
+
+            $columnName = $column->getQuotedName($this->platform);
+            $valueSql   = $type->convertToDatabaseValueSQL('?', $this->platform);
+
+            $values[$columnName] = $valueSql;
         }
 
         $this->builder->values($values);
+
+        return $this;
+    }
+
+    public function orderBy(string $sort, ?string $order = null): self
+    {
+        $this->builder->orderBy($this->quoteColumn($sort), $order);
+
+        return $this;
+    }
+
+    public function addOrderBy(string $sort, ?string $order = null): self
+    {
+        $this->builder->addOrderBy($this->quoteColumn($sort), $order);
 
         return $this;
     }
@@ -121,7 +139,6 @@ class Query
         }
 
         $recordsCount = count($records);
-        $columnsCount = count($columns);
 
         $types = array_merge(...array_fill(0, $recordsCount, $types));
 
@@ -135,9 +152,12 @@ class Query
             throw new InvalidArgumentException('Invalid record values.');
         }
 
+        $tableName = $table->getQuotedName($this->platform);
+        $values    = array_map(fn (Type $type) => $type->convertToDatabaseValueSQL('?', $this->platform), $types);
+
         $sql = $this->platform instanceof OraclePlatform
-            ? $this->getBulkInsertSQLForOracle($into, $columns, $columnsCount, $recordsCount)
-            : $this->getBulkInsertSQL($into, $columns, $columnsCount, $recordsCount);
+            ? $this->getBulkInsertSQLForOracle($tableName, $columns, $values, $recordsCount)
+            : $this->getBulkInsertSQL($tableName, $columns, $values, $recordsCount);
 
         $rowNum = $this->connection->executeStatement($sql, $params, $types);
 
@@ -148,25 +168,26 @@ class Query
         throw new RuntimeException(sprintf('Bulk insert failed: row num (%d) !== records count (%d)', $rowNum, $recordsCount));
     }
 
-    private function getBulkInsertSQL(string $into, array $columns, int $columnsCount, int $recordsCount): string
+    private function getBulkInsertSQL(string $tableName, array $columns, array $values, int $recordsCount): string
     {
-        $sql  = "INSERT INTO {$into} ";
+        $sql  = "INSERT INTO {$tableName} ";
         $sql .= '(' . implode(',', $columns) . ')';
         $sql .= ' VALUES ';
 
-        $values = '(' . implode(',', array_fill(0, $columnsCount, '?')) . ')';
+        $values = '(' . implode(',', $values) . ')';
 
         return $sql . implode(',', array_fill(0, $recordsCount, $values));
     }
 
-    private function getBulkInsertSQLForOracle(string $into, array $columns, int $columnsCount, int $recordsCount): string
+    private function getBulkInsertSQLForOracle(string $tableName, array $columns, array $values, int $recordsCount): string
     {
         $sql = 'INSERT ALL ';
 
         $columns = '(' . implode(',', $columns) . ')';
-        $values  = '(' . implode(',', array_fill(0, $columnsCount, '?')) . ')';
 
-        $sql .= implode(' ', array_fill(0, $recordsCount, "INTO {$into} {$columns} VALUES {$values}"));
+        $values = '(' . implode(',', $values) . ')';
+
+        $sql .= implode(' ', array_fill(0, $recordsCount, "INTO {$tableName} {$columns} VALUES {$values}"));
         $sql .= ' SELECT 1 FROM dual';
 
         return $sql;
@@ -177,38 +198,40 @@ class Query
         return 'c' . $this->resultAliasCounter++;
     }
 
-    public function selectFrom(string|array $from, ?string ...$selects)
+    public function selectFrom(string|array $from, ?string ...$selects): self
     {
-        $this->addSelects($this->addFrom($from, [$this->builder, 'from']), $selects);
+        $this->addSelects($this->addFrom([$this->builder, 'from'], $from), $selects);
 
         return $this;
     }
 
-    public function join(string $fromAlias, string $joinTable, string $joinAlias, string $on, ?string ...$selects)
+    private function addJoin(callable $builderCall, string $fromAlias, string $joinTable, string $joinAlias, string $on): string
     {
         $table = $this->schema->getTable($joinTable);
-        $this->builder->join($fromAlias, $joinTable, $joinAlias, $on);
+        $builderCall($fromAlias, $table->getQuotedName($this->platform), $joinAlias, $on);
 
         $this->selectTableMap[$joinAlias] = $table;
-        $this->addSelects($joinAlias, $selects);
+
+        return $joinAlias;
+    }
+
+    public function join(string $fromAlias, string $joinTable, string $joinAlias, string $on, ?string ...$selects): self
+    {
+        $this->addSelects($this->addJoin([$this->builder, 'join'], $fromAlias, $joinTable, $joinAlias, $on), $selects);
 
         return $this;
     }
 
-    public function leftJoin(string $fromAlias, string $joinTable, string $joinAlias, string $on, ?string ...$selects)
+    public function leftJoin(string $fromAlias, string $joinTable, string $joinAlias, string $on, ?string ...$selects): self
     {
-        $table = $this->schema->getTable($joinTable);
-        $this->builder->leftJoin($fromAlias, $joinTable, $joinAlias, $on);
-
-        $this->selectTableMap[$joinAlias] = $table;
-        $this->addSelects($joinAlias, $selects);
+        $this->addSelects($this->addJoin([$this->builder, 'leftJoin'], $fromAlias, $joinTable, $joinAlias, $on), $selects);
 
         return $this;
     }
 
-    public function update(string|array $from, array $data = [])
+    public function update(string|array $from, array $data = []): self
     {
-        $fromAlias = $this->addFrom($from, [$this->builder, 'update']);
+        $fromAlias = $this->addFrom([$this->builder, 'update'], $from);
 
         foreach ($data as $column => $value) {
             $this->builder->set(...$this->bind($fromAlias, $column, $value));
@@ -218,12 +241,12 @@ class Query
     }
 
     /** @return string The from alias */
-    private function addFrom(string|array $from, callable $builderCall): string
+    private function addFrom(callable $builderCall, string|array $from): string
     {
         [$fromTable, $fromAlias] = is_string($from) ? [$from, null] : $from;
 
         $table = $this->schema->getTable($fromTable);
-        $builderCall($fromTable, $fromAlias);
+        $builderCall($table->getQuotedName($this->platform), $fromAlias);
 
         $fromAlias ??= $fromTable;
 
@@ -252,7 +275,7 @@ class Query
         }
     }
 
-    private function addSelects(string $tableAlias, array $selects)
+    private function addSelects(string $tableAlias, array $selects): void
     {
         if (array_key_exists(0, $selects) && $selects[0] === null) {
             return;
@@ -346,24 +369,72 @@ class Query
 
     public function comparison(string $x, string $operator, $y): string
     {
-        try {
-            [$tableAlias, $column] = explode('.', $x, 2);
-        } catch (ErrorException) {
-            throw new InvalidArgumentException(
-                'The left hand side of a comparison should be like "<tableAlias>.<column>".',
-            );
+        [$tableAlias, $column] = $this->splitColumn($x);
+
+        return implode(' ' . $operator . ' ', $this->bind($tableAlias, $column, $y));
+    }
+
+    public function comparisonArray(string $x, string $operator, array $y): string
+    {
+        [$tableAlias, $column] = $this->splitColumn($x);
+
+        $column   = $this->selectTableMap[$tableAlias]->getColumn($column);
+        $type     = $column->getType();
+        $valueSql = $type->convertToDatabaseValueSQL('?', $this->platform);
+
+        $values = [];
+        foreach ($y as $value) {
+            $this->builder->createPositionalParameter($value, $type);
+            $values[] = $valueSql;
         }
 
-        return implode(" {$operator} ", $this->bind($tableAlias, $column, $y));
+        return implode(' ', [
+            "{$tableAlias}.{$column->getQuotedName($this->platform)}",
+            $operator,
+            '(' . implode(',', $values) . ')',
+        ]);
+    }
+
+    public function in(string $x, array $y): string
+    {
+        return $this->comparisonArray($x, 'IN', $y);
+    }
+
+    public function notIn(string $x, array $y): string
+    {
+        return $this->comparisonArray($x, 'NOT IN', $y);
+    }
+
+    private function splitColumn(string $column): array
+    {
+        try {
+            return explode('.', $column, 2);
+        } catch (ErrorException) {
+            throw new InvalidArgumentException(
+                sprintf('Given "%s" while expecting "<tableAlias>.<column>".', $column),
+            );
+        }
+    }
+
+    public function quoteColumn(string $column): string
+    {
+        [$tableAlias, $column] = $this->splitColumn($column);
+
+        $column = $this->selectTableMap[$tableAlias]->getColumn($column);
+
+        return "{$tableAlias}.{$column->getQuotedName($this->platform)}";
     }
 
     public function bind(string $tableAlias, string $column, $value): array
     {
         $column = $this->selectTableMap[$tableAlias]->getColumn($column);
+        $type   = $column->getType();
+
+        $this->builder->createPositionalParameter($value, $type);
 
         return [
             "{$tableAlias}.{$column->getQuotedName($this->platform)}",
-            $this->builder->createPositionalParameter($value, $column->getType()),
+            $type->convertToDatabaseValueSQL('?', $this->platform),
         ];
     }
 

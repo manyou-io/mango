@@ -6,11 +6,13 @@ namespace Manyou\Mango\Doctrine\Type;
 
 use Doctrine\DBAL\ParameterType;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
+use Doctrine\DBAL\Platforms\OraclePlatform;
 use Doctrine\DBAL\Types\ConversionException;
 use Doctrine\DBAL\Types\Type;
 use InvalidArgumentException;
 use Symfony\Component\Uid\AbstractUid;
 
+use function bin2hex;
 use function is_string;
 
 abstract class AbstractUidType extends Type
@@ -45,6 +47,26 @@ abstract class AbstractUidType extends Type
 
     public function convertToDatabaseValue($value, AbstractPlatform $platform): ?string
     {
+        $value = $this->convertToDatabaseValueBinary($value, $platform);
+
+        if (! $platform instanceof OraclePlatform || $value === null) {
+            return $value;
+        }
+
+        return bin2hex($value);
+    }
+
+    public function convertToDatabaseValueSQL($sqlExpr, AbstractPlatform $platform): string
+    {
+        if (! $platform instanceof OraclePlatform) {
+            return $sqlExpr;
+        }
+
+        return 'HEXTORAW(' . $sqlExpr . ')';
+    }
+
+    private function convertToDatabaseValueBinary($value, AbstractPlatform $platform): ?string
+    {
         if ($value instanceof AbstractUid) {
             return $value->toBinary();
         }
@@ -71,6 +93,6 @@ abstract class AbstractUidType extends Type
 
     public function getBindingType(): int
     {
-        return ParameterType::BINARY;
+        return ParameterType::STRING;
     }
 }
