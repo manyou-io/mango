@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace Manyou\Mango\Tests;
 
-use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Exception\TableNotFoundException;
+use Manyou\Mango\Doctrine\SchemaProvider;
+use Manyou\Mango\Tests\Fixtures\Tables\CommentsTable;
 use Manyou\Mango\Tests\Fixtures\TestKernel;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
+use Symfony\Component\Uid\Ulid;
 
 class KernelTest extends KernelTestCase
 {
@@ -15,15 +18,37 @@ class KernelTest extends KernelTestCase
         return TestKernel::class;
     }
 
-    public function testKernel()
+    public static function setUpBeforeClass(): void
     {
-        self::bootKernel();
+        /** @var SchemaProvider */
+        $schema = self::getContainer()->get(SchemaProvider::class);
 
-        /** @var Connection */
-        $connection = self::getContainer()->get(Connection::class);
+        foreach ($schema->toDropSql() as $sql) {
+            try {
+                $schema->getConnection()->executeStatement($sql);
+            } catch (TableNotFoundException) {
+            }
+        }
 
-        $result = $connection->executeQuery('select ? from dual', ['Hello World'])->fetchOne();
+        foreach ($schema->toSql() as $sql) {
+            $schema->getConnection()->executeStatement($sql);
+        }
 
-        $this->assertSame('Hello World', $result);
+        self::ensureKernelShutdown();
+        self::$class  = null;
+        self::$kernel = null;
+        self::$booted = false;
+    }
+
+    public function testCreateSchema()
+    {
+        /** @var SchemaProvider */
+        $schema = self::getContainer()->get(SchemaProvider::class);
+
+        $rowNum = $schema->createQuery()->insert(CommentsTable::NAME, [
+            'id' => new Ulid(),
+        ])->executeStatement();
+
+        $this->assertSame(1, $rowNum);
     }
 }

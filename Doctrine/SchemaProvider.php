@@ -35,6 +35,16 @@ class SchemaProvider implements SchemaProviderInterface
         return $this->connection;
     }
 
+    public function toSql(): array
+    {
+        return $this->createSchema()->toSql($this->connection->getDatabasePlatform());
+    }
+
+    public function toDropSql(): array
+    {
+        return $this->createSchema()->toDropSql($this->connection->getDatabasePlatform());
+    }
+
     public function createSchema(): Schema
     {
         if (isset($this->schema)) {
