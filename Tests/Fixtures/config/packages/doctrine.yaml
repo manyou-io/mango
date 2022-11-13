@@ -1,0 +1,5 @@
+doctrine:
+    dbal:
+        connections:
+            default:
+                url: "%env(resolve:DATABASE_URL)%"
