@@ -6,7 +6,7 @@ namespace Manyou\Mango\Operation\Messenger\Middleware;
 
 use Manyou\Mango\Doctrine\SchemaProvider;
 use Manyou\Mango\Operation\Doctrine\TableProvider\OperationsTable;
-use Manyou\Mango\Operation\Doctrine\Type\OperationStatusType;
+use Manyou\Mango\Operation\Enum\OperationStatus;
 use Manyou\Mango\Operation\Messenger\Stamp\CreateOperationStamp;
 use Manyou\Mango\Operation\Messenger\Stamp\OperationStamp;
 use Manyou\Mango\Operation\Monolog\OperationLogHandler;
@@ -31,7 +31,7 @@ class OperationMiddware implements MiddlewareInterface
         return $this->schema->getConnection()->transactional(function () use ($envelope, $stack, $stamp) {
             $this->schema->createQuery()->insert(
                 OperationsTable::NAME,
-                ['id' => $id = new Ulid(), 'status' => OperationStatusType::QUEUEING],
+                ['id' => $id = new Ulid(), 'status' => OperationStatus::QUEUEING],
             )->executeStatement();
 
             $stamp->callback($id);
@@ -50,8 +50,8 @@ class OperationMiddware implements MiddlewareInterface
             $q = $this->schema->createQuery();
 
             $rowNum = $q
-                ->update([OperationsTable::NAME, 't'], ['status' => OperationStatusType::QUEUEING])
-                ->where($q->eq('t.id', $stamp->getId()), $q->eq('t.status', OperationStatusType::FAILED))
+                ->update([OperationsTable::NAME, 't'], ['status' => OperationStatus::QUEUEING])
+                ->where($q->eq('t.id', $stamp->getId()), $q->eq('t.status', OperationStatus::FAILED))
                 ->executeStatement();
 
             if ($rowNum !== 1) {
@@ -69,8 +69,8 @@ class OperationMiddware implements MiddlewareInterface
             $q = $this->schema->createQuery();
 
             $rowNum = $q
-                ->update([OperationsTable::NAME, 't'], ['status' => OperationStatusType::PROCESSING])
-                ->where($q->eq('t.id', $stamp->getId()), $q->eq('t.status', OperationStatusType::QUEUEING))
+                ->update([OperationsTable::NAME, 't'], ['status' => OperationStatus::PROCESSING])
+                ->where($q->eq('t.id', $stamp->getId()), $q->eq('t.status', OperationStatus::QUEUEING))
                 ->executeStatement();
 
             if ($rowNum !== 1) {
@@ -82,7 +82,7 @@ class OperationMiddware implements MiddlewareInterface
                 $envelope = $stack->next()->handle($envelope, $stack);
             } catch (Throwable $e) {
                 $q = $this->schema->createQuery();
-                $q->update([OperationsTable::NAME, 't'], ['status' => OperationStatusType::FAILED])
+                $q->update([OperationsTable::NAME, 't'], ['status' => OperationStatus::FAILED])
                     ->where($q->eq('t.id', $stamp->getId()))
                     ->executeStatement();
 
@@ -95,7 +95,7 @@ class OperationMiddware implements MiddlewareInterface
             }
 
             $q = $this->schema->createQuery();
-            $q->update([OperationsTable::NAME, 't'], ['status' => OperationStatusType::COMPLETED])
+            $q->update([OperationsTable::NAME, 't'], ['status' => OperationStatus::COMPLETED])
                 ->where($q->eq('t.id', $stamp->getId()))
                 ->executeStatement();
 

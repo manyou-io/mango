@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace Manyou\Mango\Operation\Doctrine\Type;
+namespace Manyou\Mango\Billing\Doctrine\Type;
 
+use Manyou\Mango\Billing\Enum\Currency;
 use Manyou\Mango\Doctrine\Type\BackedTinyIntEnum;
 use Manyou\Mango\Doctrine\Type\TinyIntEnumType;
-use Manyou\Mango\Operation\Enum\OperationStatus;
 
-class OperationStatusType extends TinyIntEnumType
+class CurrencyType extends TinyIntEnumType
 {
     use BackedTinyIntEnum;
 
-    public const NAME = 'operation_status';
+    public const NAME = 'currency';
 
     public function getName(): string
     {
@@ -21,6 +21,6 @@ class OperationStatusType extends TinyIntEnumType
 
     private function getEnumClass(): string
     {
-        return OperationStatus::class;
+        return Currency::class;
     }
 }

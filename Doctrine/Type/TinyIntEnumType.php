@@ -7,6 +7,7 @@ namespace Manyou\Mango\Doctrine\Type;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Types\ConversionException;
 
+use function is_int;
 use function sprintf;
 
 abstract class TinyIntEnumType extends TinyIntType
@@ -22,7 +23,8 @@ abstract class TinyIntEnumType extends TinyIntType
         $sql = 'CASE ';
 
         foreach ($this->getValueMap() as $id => $value) {
-            $sql .= "WHEN {$sqlExpr} = {$platform->quoteStringLiteral($id)} THEN {$platform->quoteStringLiteral($value)} ";
+            $value = is_int($value) ? $value : $platform->quoteStringLiteral($value);
+            $sql  .= sprintf('WHEN %s = %s THEN %s ', $sqlExpr, $id, $value);
         }
 
         $sql .= 'END';
