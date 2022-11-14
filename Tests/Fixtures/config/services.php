@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
-use Manyou\Mango\Doctrine\Contract\TableProvider;
 use Manyou\Mango\Doctrine\Driver\Oci8InitializeSession;
 use Manyou\Mango\Doctrine\SchemaProvider;
 

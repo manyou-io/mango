@@ -15,6 +15,7 @@ use Doctrine\DBAL\Types\Type;
 use ErrorException;
 use Generator;
 use InvalidArgumentException;
+use LogicException;
 use RuntimeException;
 
 use function array_fill;
@@ -120,10 +121,10 @@ class Query
         return $this;
     }
 
-    public function bulkInsert(string $into, array ...$records): void
+    public function bulkInsert(string $into, array ...$records): int
     {
         if (! isset($records[0])) {
-            return;
+            return 0;
         }
 
         $table = $this->schema->getTable($into);
@@ -140,7 +141,8 @@ class Query
 
         $recordsCount = count($records);
 
-        $types = array_merge(...array_fill(0, $recordsCount, $types));
+        $values = array_map(fn (Type $type) => $type->convertToDatabaseValueSQL('?', $this->platform), $types);
+        $types  = array_merge(...array_fill(0, $recordsCount, $types));
 
         foreach ($records as $record) {
             $params[] = array_values($record);
@@ -153,7 +155,6 @@ class Query
         }
 
         $tableName = $table->getQuotedName($this->platform);
-        $values    = array_map(fn (Type $type) => $type->convertToDatabaseValueSQL('?', $this->platform), $types);
 
         $sql = $this->platform instanceof OraclePlatform
             ? $this->getBulkInsertSQLForOracle($tableName, $columns, $values, $recordsCount)
@@ -162,7 +163,7 @@ class Query
         $rowNum = $this->connection->executeStatement($sql, $params, $types);
 
         if ($rowNum === $recordsCount) {
-            return;
+            return $rowNum;
         }
 
         throw new RuntimeException(sprintf('Bulk insert failed: row num (%d) !== records count (%d)', $rowNum, $recordsCount));
@@ -262,7 +263,7 @@ class Query
             return yield from $table->getColumns();
         }
 
-        if ($selects[0] === '*') {
+        if ('*' === ($selects[0] ?? null)) {
             foreach ($table->getColumns() as $columnAlias => $column) {
                 yield ($selects[$columnAlias] ?? $columnAlias) => $column;
             }
@@ -327,25 +328,54 @@ class Query
         return $this->builder->getSQL();
     }
 
-    private function convertResultValues(array $result): array
+    private function convertResultToPHPValue(string $resultAlias, mixed $value)
     {
-        foreach ($result as $resultAlias => $value) {
-            $value = $this->resultTypeMap[$resultAlias]
-                ->convertToPHPValue($value, $this->platform);
+        return $this->resultTypeMap[$resultAlias]
+            ->convertToPHPValue($value, $this->platform);
+    }
+
+    private function convertResultRow(array $row): array
+    {
+        $results = [];
+        foreach ($row as $resultAlias => $value) {
+            $value = $this->convertResultToPHPValue($resultAlias, $value);
 
             $tableAlias  = $this->resultTableAliasMap[$resultAlias];
             $columnAlias = $this->resultColumnAliasMap[$resultAlias];
 
-            $row[$tableAlias][$columnAlias] = $value;
+            $results[$tableAlias][$columnAlias] = $value;
         }
 
-        return $row;
+        return $results;
+    }
+
+    private function convertResultRowFlat(array $row): array
+    {
+        $results = [];
+        foreach ($row as $resultAlias => $value) {
+            $value = $this->convertResultToPHPValue($resultAlias, $value);
+
+            $columnAlias = $this->resultColumnAliasMap[$resultAlias];
+
+            $results[$columnAlias] = $value;
+        }
+
+        return $results;
     }
 
     public function fetchAssociative(): array|false
     {
         if (false !== $row = $this->getQueryResult()->fetchAssociative()) {
-            return $this->convertResultValues($row);
+            return $this->convertResultRow($row);
+        }
+
+        return $row;
+    }
+
+    public function fetchAssociativeFlat(): array|false
+    {
+        if (false !== $row = $this->getQueryResult()->fetchAssociative()) {
+            return $this->convertResultRowFlat($row);
         }
 
         return $row;
@@ -356,10 +386,118 @@ class Query
         $rows = $this->getQueryResult()->fetchAllAssociative();
 
         foreach ($rows as $i => $row) {
-            $rows[$i] = $this->convertResultValues($row);
+            $rows[$i] = $this->convertResultRow($row);
         }
 
         return $rows;
+    }
+
+    public function fetchAllAssociativeFlat(): array
+    {
+        $rows = $this->getQueryResult()->fetchAllAssociative();
+
+        foreach ($rows as $i => $row) {
+            $rows[$i] = $this->convertResultRowFlat($row);
+        }
+
+        return $rows;
+    }
+
+    public function fetchAllKeyValue(): array
+    {
+        $this->ensureHasKeyValue();
+
+        $rows = $this->getQueryResult()->fetchAllAssociative();
+
+        $results = [];
+        foreach ($rows as $row) {
+            $key   = $this->convertResultToPHPValue('c0', $row['c0']);
+            $value = $this->convertResultToPHPValue('c1', $row['c1']);
+
+            $results[$key] = $value;
+        }
+
+        return $results;
+    }
+
+    private function ensureHasKeyValue(): void
+    {
+        if ($this->resultAliasCounter < 2) {
+            throw new LogicException(sprintf(
+                'Requires the result to contain at least 2 columns, %d given.',
+                $this->resultAliasCounter,
+            ));
+        }
+    }
+
+    public function fetchAllAssociativeIndexed(): array
+    {
+        $this->ensureHasKeyValue();
+
+        $rows = $this->getQueryResult()->fetchAllAssociative();
+
+        $results = [];
+        foreach ($rows as $row) {
+            $key = $this->convertResultToPHPValue('c0', $row['c0']);
+            unset($row['c0']);
+
+            $results[$key] = $this->convertResultRowFlat($row);
+        }
+
+        return $results;
+    }
+
+    public function fetchAllAssociativeGrouped(): array
+    {
+        $this->ensureHasKeyValue();
+
+        $rows = $this->getQueryResult()->fetchAllAssociative();
+
+        $keys    = [];
+        $results = [];
+        foreach ($rows as $row) {
+            $key = $keys[$row['c0']] ??= $this->convertResultToPHPValue('c0', $row['c0']);
+            unset($row['c0']);
+
+            $results[$key][] = $this->convertResultRowFlat($row);
+        }
+
+        return $results;
+    }
+
+    public function fetchColumnGrouped(): array
+    {
+        $this->ensureHasKeyValue();
+
+        $rows = $this->getQueryResult()->fetchAllAssociative();
+
+        $keys    = [];
+        $results = [];
+        foreach ($rows as $row) {
+            $key = $keys[$row['c0']] ??= $this->convertResultToPHPValue('c0', $row['c0']);
+
+            $results[$key][] = $this->convertResultToPHPValue('c1', $row['c1']);
+        }
+
+        return $results;
+    }
+
+    public function fetchFirstColumn(): array
+    {
+        $values = $this->getQueryResult()->fetchFirstColumn();
+
+        foreach ($values as $i => $value) {
+            $values[$i] = $this->convertResultToPHPValue('c0', $value);
+        }
+
+        return $values;
+    }
+
+    public function fetchOne(): mixed
+    {
+        $value = $this->getQueryResult()->fetchOne();
+
+        return $this->convertResultToPHPValue('c0', $value);
     }
 
     public function getBuilder(): QueryBuilder
