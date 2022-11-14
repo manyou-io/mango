@@ -29,7 +29,7 @@ class LogLevelType extends TinyIntEnumType
 
     public function convertToPHPValue($value, AbstractPlatform $platform): ?string
     {
-        return $value === null ? null : Level::from($value)->toPsrLogLevel();
+        return $value === null ? null : Level::from((int) $value)->toPsrLogLevel();
     }
 
     public function idToValue(int $id): ?string
