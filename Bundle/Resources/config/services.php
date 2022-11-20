@@ -13,9 +13,6 @@ use Manyou\Mango\Operation\Doctrine\TableProvider\OperationsTable;
 use Manyou\Mango\Operation\Messenger\Middleware\OperationMiddware;
 use Manyou\Mango\Operation\Monolog\OperationLogHandler;
 use Manyou\Mango\Operation\Repository\OperationRepository;
-use Manyou\Mango\Security\Doctrine\TableProvider\UsersTable;
-use Manyou\Mango\Security\LogoutListener;
-use Manyou\Mango\Security\UserProvider;
 use Monolog\Handler\FingersCrossedHandler;
 use Monolog\Level;
 use Monolog\Processor\PsrLogMessageProcessor;
@@ -32,7 +29,6 @@ return static function (ContainerConfigurator $containerConfigurator): void {
     $services->set(Oci8InitializeSession::class);
     $services->set(OperationsTable::class);
     $services->set(OperationLogsTable::class);
-    $services->set(UsersTable::class);
     $services->set(OperationMiddware::class);
     $services->set(OperationRepository::class)->public();
 
@@ -68,7 +64,4 @@ return static function (ContainerConfigurator $containerConfigurator): void {
         ->call('pushProcessor', [service('mango.monolog.processor.psr')]);
 
     $services->set(SerializerInitializerContextBuilder::class);
-
-    $services->set(UserProvider::class);
-    $services->set(LogoutListener::class);
 };

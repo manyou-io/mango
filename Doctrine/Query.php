@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Manyou\Mango\Doctrine;
 
+use Closure;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Platforms\OraclePlatform;
+use Doctrine\DBAL\Query\Expression\CompositeExpression;
 use Doctrine\DBAL\Query\QueryBuilder;
 use Doctrine\DBAL\Result;
 use Doctrine\DBAL\Schema\Column;
@@ -16,6 +18,7 @@ use ErrorException;
 use Generator;
 use InvalidArgumentException;
 use LogicException;
+use Manyou\Mango\Doctrine\Exception\RowNumUnmatched;
 use RuntimeException;
 
 use function array_fill;
@@ -37,6 +40,7 @@ use function sprintf;
  * @method $this setMaxResults(int|null $maxResults)
  * @method array getParameters()
  * @method Type[] getParameterTypes()
+ * @method $this set(string $key, string $value)
  */
 class Query
 {
@@ -206,24 +210,27 @@ class Query
         return $this;
     }
 
-    private function addJoin(callable $builderCall, string $fromAlias, string $joinTable, string $joinAlias, string $on): string
+    private function addJoin(callable $builderCall, string $fromAlias, string $joinTable, string $joinAlias, string|Closure $on): string
     {
-        $table = $this->schema->getTable($joinTable);
-        $builderCall($fromAlias, $table->getQuotedName($this->platform), $joinAlias, $on);
+        $this->selectTableMap[$joinAlias] = $table = $this->schema->getTable($joinTable);
 
-        $this->selectTableMap[$joinAlias] = $table;
+        if ($on instanceof Closure) {
+            $on = $on($this);
+        }
+
+        $builderCall($fromAlias, $table->getQuotedName($this->platform), $joinAlias, $on);
 
         return $joinAlias;
     }
 
-    public function join(string $fromAlias, string $joinTable, string $joinAlias, string $on, ?string ...$selects): self
+    public function join(string $fromAlias, string $joinTable, string $joinAlias, string|Closure $on, ?string ...$selects): self
     {
         $this->addSelects($this->addJoin([$this->builder, 'join'], $fromAlias, $joinTable, $joinAlias, $on), $selects);
 
         return $this;
     }
 
-    public function leftJoin(string $fromAlias, string $joinTable, string $joinAlias, string $on, ?string ...$selects): self
+    public function leftJoin(string $fromAlias, string $joinTable, string $joinAlias, string|Closure $on, ?string ...$selects): self
     {
         $this->addSelects($this->addJoin([$this->builder, 'leftJoin'], $fromAlias, $joinTable, $joinAlias, $on), $selects);
 
@@ -304,6 +311,33 @@ class Query
                 )
                 . ' ' . $this->platform->quoteSingleIdentifier($resultAlias);
         }
+    }
+
+    public function selectRaw(string $prefix, string $column, string $suffix, ?string $type = null, ?string $alias = null): self
+    {
+        [$tableAlias, $column] = $this->splitColumn($column);
+
+        $alias ??= $column;
+
+        $column = $this->selectTableMap[$tableAlias]->getColumn($column);
+        $type   = null === $type ? $column->getType() : Type::getType($type);
+
+        $resultAlias = $this->getResultAlias();
+
+        $this->resultTypeMap[$resultAlias]        = $type;
+        $this->resultTableAliasMap[$resultAlias]  = $tableAlias;
+        $this->resultColumnAliasMap[$resultAlias] = $alias;
+
+        $this->selects[] =
+                $prefix
+                . $type->convertToPHPValueSQL(
+                    $tableAlias . '.' . $column->getQuotedName($this->platform),
+                    $this->platform,
+                )
+                . $suffix
+                . ' ' . $this->platform->quoteSingleIdentifier($resultAlias);
+
+        return $this;
     }
 
     private function getQueryResult(): Result
@@ -512,6 +546,15 @@ class Query
         return implode(' ' . $operator . ' ', $this->bind($tableAlias, $column, $y));
     }
 
+    public function assertion(string $x, string $operator): string
+    {
+        [$tableAlias, $column] = $this->splitColumn($x);
+
+        $column = $this->selectTableMap[$tableAlias]->getColumn($column);
+
+        return "{$tableAlias}.{$column->getQuotedName($this->platform)} {$operator}";
+    }
+
     public function comparisonArray(string $x, string $operator, array $y): string
     {
         [$tableAlias, $column] = $this->splitColumn($x);
@@ -531,6 +574,18 @@ class Query
             $operator,
             '(' . implode(',', $values) . ')',
         ]);
+    }
+
+    public function createPositionalParameter(string $x, mixed $value): self
+    {
+        [$tableAlias, $column] = $this->splitColumn($x);
+
+        $column = $this->selectTableMap[$tableAlias]->getColumn($column);
+        $type   = $column->getType();
+
+        $this->builder->createPositionalParameter($value, $type);
+
+        return $this;
     }
 
     public function in(string $x, array $y): string
@@ -576,39 +631,55 @@ class Query
         ];
     }
 
+    public function isNull(string $x): string
+    {
+        return $this->assertion($x, 'IS NULL');
+    }
+
+    public function isNotNull(string $x): string
+    {
+        return $this->assertion($x, 'IS NOT NULL');
+    }
+
     public function eq(string $x, $y): string
     {
-        return $this->comparison($x, self::EQ, $y);
+        return $this->comparison($x, '=', $y);
     }
 
     public function neq(string $x, $y): string
     {
-        return $this->comparison($x, self::NEQ, $y);
+        return $this->comparison($x, '<>', $y);
     }
 
     public function lt(string $x, $y): string
     {
-        return $this->comparison($x, self::LT, $y);
+        return $this->comparison($x, '<', $y);
     }
 
     public function lte(string $x, $y): string
     {
-        return $this->comparison($x, self::LTE, $y);
+        return $this->comparison($x, '<=', $y);
     }
 
     public function gt(string $x, $y): string
     {
-        return $this->comparison($x, self::GT, $y);
+        return $this->comparison($x, '>', $y);
     }
 
     public function gte(string $x, $y): string
     {
-        return $this->comparison($x, self::GTE, $y);
+        return $this->comparison($x, '>=', $y);
     }
 
-    public function executeStatement(): int
+    public function executeStatement(?int $expectedRowNum = null): int
     {
-        return $this->builder->executeStatement();
+        $rowNum = $this->builder->executeStatement();
+
+        if ($rowNum !== ($expectedRowNum ?? $rowNum)) {
+            throw RowNumUnmatched::create($expectedRowNum, $rowNum);
+        }
+
+        return $rowNum;
     }
 
     public function __call($name, $arguments)
@@ -616,5 +687,15 @@ class Query
         $returnValue = $this->builder->{$name}(...$arguments);
 
         return $returnValue === $this->builder ? $this : $returnValue;
+    }
+
+    public function and(string|CompositeExpression $expression, string|CompositeExpression ...$expressions): CompositeExpression
+    {
+        return CompositeExpression::and($expression, ...$expressions);
+    }
+
+    public function or(string|CompositeExpression $expression, string|CompositeExpression ...$expressions): CompositeExpression
+    {
+        return CompositeExpression::or($expression, ...$expressions);
     }
 }

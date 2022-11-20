@@ -6,6 +6,7 @@ namespace Manyou\Mango\Doctrine\Type;
 
 use BackedEnum;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
+use Stringable;
 
 use function array_map;
 use function is_a;
@@ -29,7 +30,11 @@ trait BackedTinyIntEnum
     public function valueToId($value): ?int
     {
         if (! is_a($value, $this->getEnumClass())) {
-            return null;
+            if ($value instanceof Stringable) {
+                $value = (string) $value;
+            }
+
+            $value = $this->getEnumClass()::from($value);
         }
 
         return $this->getIdMap()[$value->value] ?? null;
