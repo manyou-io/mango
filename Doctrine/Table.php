@@ -15,6 +15,7 @@ use Doctrine\DBAL\Schema\Table as DoctrineTable;
  * @method $this addIndex(string[] $columnNames, string|null $indexName = null, string[] $flags = [], mixed[] $options = [])
  * @method $this addForeignKeyConstraint(string $foreignTableName, string[] $localColumnNames, string[] $foreignColumnNames, mixed[] $options = [], string|null $constraintName = null)
  * @method string getQuotedName(AbstractPlatform $platform)
+ * @method string getName()
  */
 class Table
 {

@@ -30,8 +30,10 @@ use function array_values;
 use function count;
 use function explode;
 use function implode;
+use function is_array;
 use function is_string;
 use function sprintf;
+use function strpos;
 
 /**
  * @method $this where($predicates)
@@ -73,6 +75,13 @@ class Query
     /** @var Table[] Tracking table alias for reference in expressions */
     private array $selectTableMap = [];
 
+    /** @var string[] */
+    private array $quotedTableAliasMap = [];
+
+    private string $lastTableAlias;
+
+    private string $fromAlias;
+
     public function __construct(
         private Connection $connection,
         private SchemaProvider $schema,
@@ -111,14 +120,14 @@ class Query
         return $this;
     }
 
-    public function orderBy(string $sort, ?string $order = null): self
+    public function orderBy(string|array $sort, ?string $order = null): self
     {
         $this->builder->orderBy($this->quoteColumn($sort), $order);
 
         return $this;
     }
 
-    public function addOrderBy(string $sort, ?string $order = null): self
+    public function addOrderBy(string|array $sort, ?string $order = null): self
     {
         $this->builder->addOrderBy($this->quoteColumn($sort), $order);
 
@@ -210,29 +219,55 @@ class Query
         return $this;
     }
 
-    private function addJoin(callable $builderCall, string $fromAlias, string $joinTable, string $joinAlias, string|Closure $on): string
+    private function addSelectTable(string $alias, Table $table): void
     {
-        $this->selectTableMap[$joinAlias] = $table = $this->schema->getTable($joinTable);
+        $this->selectTableMap[$alias] = $table;
+        $this->lastTableAlias         = $alias;
+
+        $this->quotedTableAliasMap[$alias] = $alias === $table->getName()
+            ? $table->getQuotedName($this->platform)
+            : $alias;
+    }
+
+    private function addJoin(callable $builderCall, string $fromAlias, string|array $join, string|Closure|array $on): string
+    {
+        [$joinTable, $joinAlias] = is_string($join) ? [$join, $join] : $join;
+
+        $this->addSelectTable($joinAlias, $table = $this->schema->getTable($joinTable));
 
         if ($on instanceof Closure) {
             $on = $on($this);
+        } elseif (is_array($on)) {
+            [$fromColumn, $joinColumn] = $on;
+
+            $on = $this->eq([$fromAlias, $fromColumn], [$joinAlias, $joinColumn]);
         }
 
-        $builderCall($fromAlias, $table->getQuotedName($this->platform), $joinAlias, $on);
+        $builderCall(
+            $this->quotedTableAliasMap[$fromAlias],
+            $table->getQuotedName($this->platform),
+            $this->quotedTableAliasMap[$joinAlias],
+            $on,
+        );
 
         return $joinAlias;
     }
 
-    public function join(string $fromAlias, string $joinTable, string $joinAlias, string|Closure $on, ?string ...$selects): self
+    public function join(string $fromAlias, string|array $join, string|Closure|array $on, ?string ...$selects): self
     {
-        $this->addSelects($this->addJoin([$this->builder, 'join'], $fromAlias, $joinTable, $joinAlias, $on), $selects);
+        $this->addSelects($this->addJoin([$this->builder, 'join'], $fromAlias, $join, $on), $selects);
 
         return $this;
     }
 
-    public function leftJoin(string $fromAlias, string $joinTable, string $joinAlias, string|Closure $on, ?string ...$selects): self
+    public function joinOn(string|array $joinTable, string $joinColumn, string $fromColumn, ?string ...$selects): self
     {
-        $this->addSelects($this->addJoin([$this->builder, 'leftJoin'], $fromAlias, $joinTable, $joinAlias, $on), $selects);
+        return $this->join($this->fromAlias, $joinTable, [$fromColumn, $joinColumn], ...$selects);
+    }
+
+    public function leftJoin(string $fromAlias, string|array $join, string|Closure|array $on, ?string ...$selects): self
+    {
+        $this->addSelects($this->addJoin([$this->builder, 'leftJoin'], $fromAlias, $join, $on), $selects);
 
         return $this;
     }
@@ -258,9 +293,9 @@ class Query
 
         $fromAlias ??= $fromTable;
 
-        $this->selectTableMap[$fromAlias] = $table;
+        $this->addSelectTable($fromAlias, $table);
 
-        return $fromAlias;
+        return $this->fromAlias = $fromAlias;
     }
 
     /** @return Column[] */
@@ -306,7 +341,7 @@ class Query
 
             $this->selects[] =
                 $type->convertToPHPValueSQL(
-                    $tableAlias . '.' . $column->getQuotedName($this->platform),
+                    $this->quotedTableAliasMap[$tableAlias] . '.' . $column->getQuotedName($this->platform),
                     $this->platform,
                 )
                 . ' ' . $this->platform->quoteSingleIdentifier($resultAlias);
@@ -331,7 +366,7 @@ class Query
         $this->selects[] =
                 $prefix
                 . $type->convertToPHPValueSQL(
-                    $tableAlias . '.' . $column->getQuotedName($this->platform),
+                    $this->quotedTableAliasMap[$tableAlias] . '.' . $column->getQuotedName($this->platform),
                     $this->platform,
                 )
                 . $suffix
@@ -539,23 +574,31 @@ class Query
         return $this->builder;
     }
 
-    public function comparison(string $x, string $operator, $y): string
+    public function comparison(string|array $x, string $operator, $y): string
     {
+        if (is_array($y)) {
+            return implode(' ' . $operator . ' ', [
+                $this->quoteColumn($x),
+                $this->quoteColumn($y),
+            ]);
+        }
+
         [$tableAlias, $column] = $this->splitColumn($x);
 
         return implode(' ' . $operator . ' ', $this->bind($tableAlias, $column, $y));
     }
 
-    public function assertion(string $x, string $operator): string
+    public function assertion(string|array $x, string $operator): string
     {
         [$tableAlias, $column] = $this->splitColumn($x);
 
         $column = $this->selectTableMap[$tableAlias]->getColumn($column);
 
-        return "{$tableAlias}.{$column->getQuotedName($this->platform)} {$operator}";
+        return $this->quotedTableAliasMap[$tableAlias] . '.' . $column->getQuotedName($this->platform)
+            . ' ' . $operator;
     }
 
-    public function comparisonArray(string $x, string $operator, array $y): string
+    public function comparisonArray(string|array $x, string $operator, array $y): string
     {
         [$tableAlias, $column] = $this->splitColumn($x);
 
@@ -570,13 +613,13 @@ class Query
         }
 
         return implode(' ', [
-            "{$tableAlias}.{$column->getQuotedName($this->platform)}",
+            $this->quotedTableAliasMap[$tableAlias] . '.' . $column->getQuotedName($this->platform),
             $operator,
             '(' . implode(',', $values) . ')',
         ]);
     }
 
-    public function createPositionalParameter(string $x, mixed $value): self
+    public function createPositionalParameter(string|array $x, mixed $value): self
     {
         [$tableAlias, $column] = $this->splitColumn($x);
 
@@ -588,18 +631,26 @@ class Query
         return $this;
     }
 
-    public function in(string $x, array $y): string
+    public function in(string|array $x, array $y): string
     {
         return $this->comparisonArray($x, 'IN', $y);
     }
 
-    public function notIn(string $x, array $y): string
+    public function notIn(string|array $x, array $y): string
     {
         return $this->comparisonArray($x, 'NOT IN', $y);
     }
 
-    private function splitColumn(string $column): array
+    private function splitColumn(string|array $column): array
     {
+        if (is_array($column)) {
+            return $column;
+        }
+
+        if (false === strpos($column, '.')) {
+            return [$this->lastTableAlias, $column];
+        }
+
         try {
             return explode('.', $column, 2);
         } catch (ErrorException) {
@@ -609,13 +660,13 @@ class Query
         }
     }
 
-    public function quoteColumn(string $column): string
+    public function quoteColumn(string|array $column): string
     {
         [$tableAlias, $column] = $this->splitColumn($column);
 
         $column = $this->selectTableMap[$tableAlias]->getColumn($column);
 
-        return "{$tableAlias}.{$column->getQuotedName($this->platform)}";
+        return $this->quotedTableAliasMap[$tableAlias] . '.' . $column->getQuotedName($this->platform);
     }
 
     public function bind(string $tableAlias, string $column, $value): array
@@ -626,47 +677,47 @@ class Query
         $this->builder->createPositionalParameter($value, $type);
 
         return [
-            "{$tableAlias}.{$column->getQuotedName($this->platform)}",
+            $this->quotedTableAliasMap[$tableAlias] . '.' . $column->getQuotedName($this->platform),
             $type->convertToDatabaseValueSQL('?', $this->platform),
         ];
     }
 
-    public function isNull(string $x): string
+    public function isNull(string|array $x): string
     {
         return $this->assertion($x, 'IS NULL');
     }
 
-    public function isNotNull(string $x): string
+    public function isNotNull(string|array $x): string
     {
         return $this->assertion($x, 'IS NOT NULL');
     }
 
-    public function eq(string $x, $y): string
+    public function eq(string|array $x, $y): string
     {
         return $this->comparison($x, '=', $y);
     }
 
-    public function neq(string $x, $y): string
+    public function neq(string|array $x, $y): string
     {
         return $this->comparison($x, '<>', $y);
     }
 
-    public function lt(string $x, $y): string
+    public function lt(string|array $x, $y): string
     {
         return $this->comparison($x, '<', $y);
     }
 
-    public function lte(string $x, $y): string
+    public function lte(string|array $x, $y): string
     {
         return $this->comparison($x, '<=', $y);
     }
 
-    public function gt(string $x, $y): string
+    public function gt(string|array $x, $y): string
     {
         return $this->comparison($x, '>', $y);
     }
 
-    public function gte(string $x, $y): string
+    public function gte(string|array $x, $y): string
     {
         return $this->comparison($x, '>=', $y);
     }
