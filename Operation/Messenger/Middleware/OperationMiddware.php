@@ -50,8 +50,8 @@ class OperationMiddware implements MiddlewareInterface
             $q = $this->schema->createQuery();
 
             $rowNum = $q
-                ->update([OperationsTable::NAME, 't'], ['status' => OperationStatus::QUEUEING])
-                ->where($q->eq('t.id', $stamp->getId()), $q->eq('t.status', OperationStatus::FAILED))
+                ->update(OperationsTable::NAME, ['status' => OperationStatus::QUEUEING])
+                ->where($q->eq('id', $stamp->getId()), $q->eq('status', OperationStatus::FAILED))
                 ->executeStatement();
 
             if ($rowNum !== 1) {
@@ -69,8 +69,8 @@ class OperationMiddware implements MiddlewareInterface
             $q = $this->schema->createQuery();
 
             $rowNum = $q
-                ->update([OperationsTable::NAME, 't'], ['status' => OperationStatus::PROCESSING])
-                ->where($q->eq('t.id', $stamp->getId()), $q->eq('t.status', OperationStatus::QUEUEING))
+                ->update(OperationsTable::NAME, ['status' => OperationStatus::PROCESSING])
+                ->where($q->eq('id', $stamp->getId()), $q->eq('status', OperationStatus::QUEUEING))
                 ->executeStatement();
 
             if ($rowNum !== 1) {
@@ -82,8 +82,8 @@ class OperationMiddware implements MiddlewareInterface
                 $envelope = $stack->next()->handle($envelope, $stack);
             } catch (Throwable $e) {
                 $q = $this->schema->createQuery();
-                $q->update([OperationsTable::NAME, 't'], ['status' => OperationStatus::FAILED])
-                    ->where($q->eq('t.id', $stamp->getId()))
+                $q->update(OperationsTable::NAME, ['status' => OperationStatus::FAILED])
+                    ->where($q->eq('id', $stamp->getId()))
                     ->executeStatement();
 
                 $this->operationLogger->error($e->getMessage(), [
@@ -95,8 +95,8 @@ class OperationMiddware implements MiddlewareInterface
             }
 
             $q = $this->schema->createQuery();
-            $q->update([OperationsTable::NAME, 't'], ['status' => OperationStatus::COMPLETED])
-                ->where($q->eq('t.id', $stamp->getId()))
+            $q->update(OperationsTable::NAME, ['status' => OperationStatus::COMPLETED])
+                ->where($q->eq('id', $stamp->getId()))
                 ->executeStatement();
 
             return $envelope;
