@@ -272,6 +272,11 @@ class Query
         return $this;
     }
 
+    public function leftJoinOn(string|array $joinTable, string $joinColumn, string $fromColumn, ?string ...$selects): self
+    {
+        return $this->leftJoin($this->fromAlias, $joinTable, [$fromColumn, $joinColumn], ...$selects);
+    }
+
     public function update(string|array $from, array $data = []): self
     {
         $fromAlias = $this->addFrom([$this->builder, 'update'], $from);
@@ -348,7 +353,7 @@ class Query
         }
     }
 
-    public function selectRaw(string $prefix, string $column, string $suffix, ?string $type = null, ?string $alias = null): self
+    public function selectRaw(string $prefix, string|array $column, string $suffix, ?string $type = null, ?string $alias = null): self
     {
         [$tableAlias, $column] = $this->splitColumn($column);
 
