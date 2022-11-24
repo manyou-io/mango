@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Manyou\Mango\Doctrine;
 
+use Closure;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Result;
 use Doctrine\DBAL\Schema\Schema;
@@ -33,6 +34,11 @@ class SchemaProvider implements SchemaProviderInterface
     public function getConnection(): Connection
     {
         return $this->connection;
+    }
+
+    public function transactional(Closure $func)
+    {
+        return $this->connection->transactional($func);
     }
 
     public function toSql(): array

@@ -6,6 +6,7 @@ namespace Manyou\Mango\Doctrine;
 
 use Closure;
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\ParameterType;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Platforms\OraclePlatform;
 use Doctrine\DBAL\Query\Expression\CompositeExpression;
@@ -31,6 +32,7 @@ use function count;
 use function explode;
 use function implode;
 use function is_array;
+use function is_int;
 use function is_string;
 use function sprintf;
 use function strpos;
@@ -82,6 +84,8 @@ class Query
 
     private string $fromAlias;
 
+    private Table $insertInto;
+
     public function __construct(
         private Connection $connection,
         private SchemaProvider $schema,
@@ -92,7 +96,7 @@ class Query
 
     public function insert(string $into, array $data): self
     {
-        $table = $this->schema->getTable($into);
+        $this->insertInto = $table = $this->schema->getTable($into);
 
         $this->builder->insert($table->getQuotedName($this->platform));
 
@@ -116,6 +120,15 @@ class Query
         }
 
         $this->builder->values($values);
+
+        return $this;
+    }
+
+    public function setRawValue(string $columnName, string $sql): self
+    {
+        $columnName = $this->insertInto->getColumn($columnName)->getQuotedName($this->platform);
+
+        $this->builder->setValue($columnName, $sql);
 
         return $this;
     }
@@ -393,6 +406,17 @@ class Query
         return $this->result = $this->builder->executeQuery();
     }
 
+    public function queryWithWriteLock(): self
+    {
+        $this->result = $this->connection->executeQuery(
+            $this->getSQL() . ' ' . $this->connection->getDatabasePlatform()->getWriteLockSQL(),
+            $this->getParameters(),
+            $this->getParameterTypes(),
+        );
+
+        return $this;
+    }
+
     public function getSQL(): string
     {
         if ($this->selects !== []) {
@@ -400,6 +424,26 @@ class Query
         }
 
         return $this->builder->getSQL();
+    }
+
+    public function appendParameters(array $params, array $types): self
+    {
+        foreach ($params as $key => $value) {
+            $type = $types[$key] ?? ParameterType::STRING;
+
+            if (is_int($key)) {
+                $this->builder->createPositionalParameter($value, $type);
+            } elseif (is_string($key)) {
+                $this->builder->setParameter($key, $value, $type);
+            }
+        }
+
+        return $this;
+    }
+
+    public function appendQueryParameters(Query|QueryBuilder $query): self
+    {
+        return $this->appendParameters($query->getParameters(), $query->getParameterTypes());
     }
 
     private function convertResultToPHPValue(string $resultAlias, mixed $value)
@@ -571,7 +615,7 @@ class Query
     {
         $value = $this->getQueryResult()->fetchOne();
 
-        return $this->convertResultToPHPValue('c0', $value);
+        return $value === false ? null : $this->convertResultToPHPValue('c0', $value);
     }
 
     public function getBuilder(): QueryBuilder
