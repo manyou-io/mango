@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Manyou\Mango\Doctrine\Type;
 
-use Doctrine\DBAL\ParameterType;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Platforms\OraclePlatform;
+use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
 use Doctrine\DBAL\Types\ConversionException;
 use Doctrine\DBAL\Types\Type;
 use InvalidArgumentException;
@@ -47,22 +47,33 @@ abstract class AbstractUidType extends Type
 
     public function convertToDatabaseValue($value, AbstractPlatform $platform): ?string
     {
-        $value = $this->convertToDatabaseValueBinary($value, $platform);
-
-        if (! $platform instanceof OraclePlatform || $value === null) {
-            return $value;
+        if ($value === null) {
+            return null;
         }
 
-        return bin2hex($value);
+        $value = $this->convertToDatabaseValueBinary($value, $platform);
+
+        if (
+            $platform instanceof OraclePlatform
+            || $platform instanceof PostgreSQLPlatform
+        ) {
+            return bin2hex($value);
+        }
+
+        return $value;
     }
 
     public function convertToDatabaseValueSQL($sqlExpr, AbstractPlatform $platform): string
     {
-        if (! $platform instanceof OraclePlatform) {
-            return $sqlExpr;
+        if ($platform instanceof OraclePlatform) {
+            return 'HEXTORAW(' . $sqlExpr . ')';
         }
 
-        return 'HEXTORAW(' . $sqlExpr . ')';
+        if ($platform instanceof PostgreSQLPlatform) {
+            return 'decode(' . $sqlExpr . ", 'hex')";
+        }
+
+        return $sqlExpr;
     }
 
     private function convertToDatabaseValueBinary($value, AbstractPlatform $platform): ?string
@@ -89,10 +100,5 @@ abstract class AbstractUidType extends Type
     public function requiresSQLCommentHint(AbstractPlatform $platform): bool
     {
         return true;
-    }
-
-    public function getBindingType(): int
-    {
-        return ParameterType::STRING;
     }
 }
