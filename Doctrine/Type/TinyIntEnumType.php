@@ -44,4 +44,9 @@ abstract class TinyIntEnumType extends TinyIntType
 
         throw new ConversionException(sprintf("Could not convert PHP value '%s' of Doctrine Type %s to database value", $value, $this->getName()));
     }
+
+    public function convertToPHPValue($value, AbstractPlatform $platform): mixed
+    {
+        return $value;
+    }
 }
