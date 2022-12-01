@@ -13,7 +13,9 @@ use InvalidArgumentException;
 use Symfony\Component\Uid\AbstractUid;
 
 use function bin2hex;
+use function is_resource;
 use function is_string;
+use function stream_get_contents;
 
 abstract class AbstractUidType extends Type
 {
@@ -32,6 +34,10 @@ abstract class AbstractUidType extends Type
     {
         if ($value instanceof AbstractUid || null === $value) {
             return $value;
+        }
+
+        if (is_resource($value)) {
+            $value = stream_get_contents($value, -1, 0);
         }
 
         if (! is_string($value)) {

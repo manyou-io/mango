@@ -295,7 +295,7 @@ class Query
         $fromAlias = $this->addFrom([$this->builder, 'update'], $from);
 
         foreach ($data as $column => $value) {
-            $this->builder->set(...$this->bind($fromAlias, $column, $value));
+            $this->builder->set(...$this->bindUpdate($fromAlias, $column, $value));
         }
 
         return $this;
@@ -727,6 +727,19 @@ class Query
 
         return [
             $this->quotedTableAliasMap[$tableAlias] . '.' . $column->getQuotedName($this->platform),
+            $type->convertToDatabaseValueSQL('?', $this->platform),
+        ];
+    }
+
+    public function bindUpdate(string $tableAlias, string $column, $value): array
+    {
+        $column = $this->selectTableMap[$tableAlias]->getColumn($column);
+        $type   = $column->getType();
+
+        $this->builder->createPositionalParameter($value, $type);
+
+        return [
+            $column->getQuotedName($this->platform),
             $type->convertToDatabaseValueSQL('?', $this->platform),
         ];
     }

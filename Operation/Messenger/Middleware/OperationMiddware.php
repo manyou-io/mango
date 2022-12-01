@@ -79,7 +79,9 @@ class OperationMiddware implements MiddlewareInterface
             }
 
             try {
-                $envelope = $stack->next()->handle($envelope, $stack);
+                $envelope = $this->schema->getConnection()->transactional(static function () use ($envelope, $stack) {
+                    return $stack->next()->handle($envelope, $stack);
+                });
             } catch (Throwable $e) {
                 $q = $this->schema->createQuery();
                 $q->update(OperationsTable::NAME, ['status' => OperationStatus::FAILED])
