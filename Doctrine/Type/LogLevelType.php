@@ -5,14 +5,14 @@ declare(strict_types=1);
 namespace Manyou\Mango\Doctrine\Type;
 
 use Doctrine\DBAL\Platforms\AbstractPlatform;
+use Doctrine\DBAL\Types\Type;
 use Monolog\Level;
+use Psr\Log\LogLevel;
 
-use function is_string;
-
-class LogLevelType extends TinyIntEnumType
+class LogLevelType extends Type
 {
-    use BackedTinyIntEnum {
-        valueToId as enumToId;
+    use EnumType {
+        convertToDatabaseValue as doConvertToDatabaseValue;
     }
 
     public const NAME = 'log_level';
@@ -22,29 +22,26 @@ class LogLevelType extends TinyIntEnumType
         return self::NAME;
     }
 
-    private function getEnumClass(): string
+    private function getEnums(): array
     {
-        return Level::class;
+        return [
+            LogLevel::DEBUG,
+            LogLevel::INFO,
+            LogLevel::NOTICE,
+            LogLevel::WARNING,
+            LogLevel::ERROR,
+            LogLevel::CRITICAL,
+            LogLevel::ALERT,
+            LogLevel::EMERGENCY,
+        ];
     }
 
-    public function convertToPHPValue($value, AbstractPlatform $platform): ?string
+    public function convertToDatabaseValue($value, AbstractPlatform $platform): int|string|null
     {
-        return $value === null ? null : Level::from((int) $value)->toPsrLogLevel();
-    }
-
-    public function idToValue(int $id): ?string
-    {
-        $value = $this->getValueMap()[$id] ?? null;
-
-        return $value === null ? null : Level::from($value)->toPsrLogLevel();
-    }
-
-    public function valueToId($value): ?int
-    {
-        if (is_string($value)) {
-            return $this->getIdMap()[Level::fromName($value)->value];
+        if ($value instanceof Level) {
+            $value = $value->toPsrLogLevel();
         }
 
-        return $this->enumToId($value);
+        return $this->doConvertToDatabaseValue($value, $platform);
     }
 }

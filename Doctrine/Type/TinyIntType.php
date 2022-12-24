@@ -22,19 +22,12 @@ class TinyIntType extends Type
 
     public function getSQLDeclaration(array $column, AbstractPlatform $platform): string
     {
-        if ($platform instanceof AbstractMySQLPlatform) {
-            return 'TINYINT' . (empty($column['unsigned']) ? '' : ' UNSIGNED');
-        }
-
-        if ($platform instanceof SQLServerPlatform) {
-            return 'TINYINT';
-        }
-
-        if ($platform instanceof OraclePlatform) {
-            return 'NUMBER(3)';
-        }
-
-        return $platform->getSmallIntTypeDeclarationSQL($column);
+        return match (true) {
+            $platform instanceof AbstractMySQLPlatform => 'TINYINT' . (empty($column['unsigned']) ? '' : ' UNSIGNED'),
+            $platform instanceof SQLServerPlatform => 'TINYINT',
+            $platform instanceof OraclePlatform => 'NUMBER(3)',
+            default => $platform->getSmallIntTypeDeclarationSQL($column),
+        };
     }
 
     public function getBindingType(): int

@@ -6,14 +6,16 @@ namespace Manyou\Mango\Doctrine\Type;
 
 use function array_flip;
 
-trait ArrayTinyIntEnum
+trait TinyIntArrayEnum
 {
-    /** @return string[]|int[] */
+    use TinyIntMapping;
+
+    /** @return string[] */
     abstract private function getEnums(): array;
 
     private static array $valueMap;
 
-    protected function getValueMap(): array
+    private function getValueMap(): array
     {
         if (! isset(self::$valueMap)) {
             self::$valueMap = [null, ...$this->getEnums()];
@@ -34,12 +36,12 @@ trait ArrayTinyIntEnum
         return self::$idMap;
     }
 
-    public function valueToId($value): ?int
+    public function valueToId(string $value): ?int
     {
         return $this->getIdMap()[$value] ?? null;
     }
 
-    public function idToValue(int $id): string|int|null
+    public function idToValue(int $id): ?string
     {
         return $this->getValueMap()[$id] ?? null;
     }

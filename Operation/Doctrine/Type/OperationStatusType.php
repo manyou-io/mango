@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Manyou\Mango\Operation\Doctrine\Type;
 
-use Manyou\Mango\Doctrine\Type\BackedTinyIntEnum;
-use Manyou\Mango\Doctrine\Type\TinyIntEnumType;
+use Doctrine\DBAL\Types\Type;
+use Manyou\Mango\Doctrine\Type\PhpEnumType;
 use Manyou\Mango\Operation\Enum\OperationStatus;
 
-class OperationStatusType extends TinyIntEnumType
+class OperationStatusType extends Type
 {
-    use BackedTinyIntEnum;
+    use PhpEnumType;
 
     public const NAME = 'operation_status';
 
