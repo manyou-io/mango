@@ -8,6 +8,7 @@ use DateTimeInterface;
 use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
+use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
 use Doctrine\DBAL\Types\ConversionException;
 use Doctrine\DBAL\Types\Type;
 
@@ -15,15 +16,13 @@ use function is_a;
 
 abstract class AbstractUsDateTimeType extends Type
 {
-    private const FORMATS = [AbstractMySQLPlatform::class => 'Y-m-d H:i:s.u'];
-
     public function getSQLDeclaration(array $column, AbstractPlatform $platform): string
     {
-        if ($platform instanceof AbstractMySQLPlatform) {
-            return 'DATETIME(6)';
-        }
-
-        throw Exception::notSupported(__METHOD__);
+        return match (true) {
+            $platform instanceof AbstractMySQLPlatform => 'DATETIME(6)',
+            $platform instanceof PostgreSQLPlatform => 'timestamp',
+            default => throw Exception::notSupported(__METHOD__),
+        };
     }
 
     public function convertToDatabaseValue($value, AbstractPlatform $platform): mixed
@@ -32,15 +31,20 @@ abstract class AbstractUsDateTimeType extends Type
             return $value;
         }
 
-        if (! $platform instanceof AbstractMySQLPlatform) {
-            throw Exception::notSupported(__METHOD__);
-        }
-
         if ($value instanceof DateTimeInterface) {
-            return $value->format(self::FORMATS[AbstractMySQLPlatform::class]);
+            return $value->format($this->getFormat($platform));
         }
 
-        throw ConversionException::conversionFailedInvalidType($value, static::class, ['null', 'DateTime']);
+        throw ConversionException::conversionFailedInvalidType($value, static::class, ['null', DateTimeInterface::class]);
+    }
+
+    private function getFormat(AbstractPlatform $platform): string
+    {
+        return match (true) {
+            $platform instanceof AbstractMySQLPlatform => 'Y-m-d H:i:s.u',
+            $platform instanceof PostgreSQLPlatform => 'Y-m-d H:i:s.u',
+            default => throw Exception::notSupported(__METHOD__),
+        };
     }
 
     abstract protected function getClassName(): string;
@@ -55,11 +59,7 @@ abstract class AbstractUsDateTimeType extends Type
             return $value;
         }
 
-        if (! $platform instanceof AbstractMySQLPlatform) {
-            throw Exception::notSupported(__METHOD__);
-        }
-
-        $format = self::FORMATS[AbstractMySQLPlatform::class];
+        $format = $this->getFormat($platform);
 
         $val = $this->createDateFromFormat($format, $value);
 

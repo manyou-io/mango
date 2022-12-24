@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Manyou\Mango\Doctrine\Type;
 
 use Doctrine\DBAL\Platforms\AbstractPlatform;
+use Doctrine\DBAL\Platforms\MariaDBPlatform;
 use Doctrine\DBAL\Platforms\OraclePlatform;
 use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
 use Doctrine\DBAL\Types\ConversionException;
@@ -24,10 +25,14 @@ abstract class AbstractUidType extends Type
 
     public function getSQLDeclaration(array $column, AbstractPlatform $platform): string
     {
-        return $platform->getBinaryTypeDeclarationSQL([
-            'length' => '16',
-            'fixed' => true,
-        ]);
+        return match (true) {
+            $platform instanceof PostgreSQLPlatform => 'UUID',
+            $platform instanceof MariaDBPlatform => 'UUID',
+            default => $platform->getBinaryTypeDeclarationSQL([
+                'length' => '16',
+                'fixed' => true,
+            ]),
+        };
     }
 
     public function convertToPHPValue(mixed $value, AbstractPlatform $platform): ?AbstractUid
@@ -53,54 +58,40 @@ abstract class AbstractUidType extends Type
 
     public function convertToDatabaseValue($value, AbstractPlatform $platform): ?string
     {
-        if ($value === null) {
-            return null;
-        }
+        $value = $this->convertToAbstractUid($value);
 
-        $value = $this->convertToDatabaseValueBinary($value, $platform);
-
-        if (
-            $platform instanceof OraclePlatform
-            || $platform instanceof PostgreSQLPlatform
-        ) {
-            return bin2hex($value);
-        }
-
-        return $value;
+        return match (true) {
+            $value === null => null,
+            $platform instanceof PostgreSQLPlatform => $value->toRfc4122(),
+            $platform instanceof MariaDBPlatform => $value->toRfc4122(),
+            $platform instanceof OraclePlatform => bin2hex($value->toBinary()),
+            default => $value->toBinary(),
+        };
     }
 
     public function convertToDatabaseValueSQL($sqlExpr, AbstractPlatform $platform): string
     {
-        if ($platform instanceof OraclePlatform) {
-            return 'HEXTORAW(' . $sqlExpr . ')';
-        }
-
-        if ($platform instanceof PostgreSQLPlatform) {
-            return 'decode(' . $sqlExpr . ", 'hex')";
-        }
-
-        return $sqlExpr;
+        return match (true) {
+            $platform instanceof OraclePlatform => 'HEXTORAW(' . $sqlExpr . ')',
+            default => $sqlExpr,
+        };
     }
 
-    private function convertToDatabaseValueBinary($value, AbstractPlatform $platform): ?string
+    private function convertToAbstractUid($value): ?AbstractUid
     {
         if ($value instanceof AbstractUid) {
-            return $value->toBinary();
+            return $value;
         }
 
         if (null === $value || '' === $value) {
             return null;
         }
 
-        if (! is_string($value)) {
-            throw ConversionException::conversionFailedInvalidType($value, static::class, ['null', 'string', $this->getUidClass()]);
+        if (is_string($value)) {
+            return $this->getUidClass()::fromString($value);
         }
 
-        try {
-            return $this->getUidClass()::fromString($value)->toBinary();
-        } catch (InvalidArgumentException) {
-            throw ConversionException::conversionFailed($value, static::class);
-        }
+        throw ConversionException::conversionFailedInvalidType($value, static::class, ['null', 'string', $this->getUidClass()]);
     }
 
     public function requiresSQLCommentHint(AbstractPlatform $platform): bool
