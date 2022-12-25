@@ -8,13 +8,12 @@ use BackedEnum;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Types\ConversionException;
 use LogicException;
-use UnitEnum;
 
 use function array_map;
 use function is_a;
 use function sprintf;
 
-trait PhpEnumType
+trait BackedEnumType
 {
     use EnumType {
         convertToDatabaseValue as doConvertToDatabaseValue;
@@ -24,33 +23,37 @@ trait PhpEnumType
 
     private function getEnums(): array
     {
-        if (! is_a(UnitEnum::class, $className = $this->getEnumClass())) {
-            return new LogicException(sprintf('%s::getEnumClass() should return a class name of enum.', $this::class));
+        if (! is_a($className = $this->getEnumClass(), BackedEnum::class, true)) {
+            throw new LogicException(sprintf('%s::getEnumClass() should return a class name of backed enum.', $this::class));
         }
 
         return array_map(self::getEnumValue(...), $className::cases());
     }
 
-    private static function getEnumValue(UnitEnum $enum): string
+    private static function getEnumValue(BackedEnum $enum): string
     {
-        return $enum instanceof BackedEnum ? $enum->value : $enum->name;
+        return $enum->value;
     }
 
     public function convertToDatabaseValue($value, AbstractPlatform $platform): int|string|null
     {
-        if (is_a($value, $className = $this->getEnumClass())) {
+        if (is_a($value, $className = $this->getEnumClass(), false)) {
             $value = self::getEnumValue($value);
         }
 
         try {
-            return $this->doConvertToDatabaseValue($value);
+            return $this->doConvertToDatabaseValue($value, $platform);
         } catch (ConversionException $e) {
             throw ConversionException::conversionFailedInvalidType($value, $this::class, ['null', $className], $e);
         }
     }
 
-    public function convertToPHPValue($value, AbstractPlatform $platform): ?UnitEnum
+    public function convertToPHPValue($value, AbstractPlatform $platform): ?BackedEnum
     {
-        return $value === null ? null : $this->getEnumClass()::from($value);
+        if ($value === null) {
+            return null;
+        }
+
+        return $this->getEnumClass()::from($value);
     }
 }
