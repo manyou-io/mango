@@ -19,7 +19,7 @@ class OperationLogsTable implements TableProvider
         $table = new Table($schema, self::NAME);
         $table->addColumn('id', 'ulid');
         $table->addColumn('operation_id', 'ulid');
-        $table->addColumn('level', LogLevelType::NAME, LogLevelType::DEFAULT_OPTIONS);
+        $table->addColumn('level', LogLevelType::NAME);
         $table->addColumn('message', Types::TEXT);
         $table->addColumn('context', Types::JSON, ['default' => '{}']);
         $table->addColumn('extra', Types::JSON, ['default' => '{}']);

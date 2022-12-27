@@ -17,7 +17,7 @@ class OperationsTable implements TableProvider
     {
         $table = new Table($schema, self::NAME);
         $table->addColumn('id', 'ulid');
-        $table->addColumn('status', OperationStatusType::NAME, OperationStatusType::DEFAULT_OPTIONS);
+        $table->addColumn('status', OperationStatusType::NAME);
         $table->setPrimaryKey(['id']);
         $table->addIndex(['status']);
 
