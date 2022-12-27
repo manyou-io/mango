@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Manyou\Mango\Doctrine\Type;
 
+use DateTimeImmutable;
 use DateTimeInterface;
+use DateTimeZone;
 use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
@@ -32,6 +34,9 @@ abstract class AbstractUsDateTimeType extends Type
         }
 
         if ($value instanceof DateTimeInterface) {
+            $value = DateTimeImmutable::createFromInterface($value)
+                ->setTimezone(new DateTimeZone('UTC'));
+
             return $value->format($this->getFormat($platform));
         }
 

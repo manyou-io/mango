@@ -33,7 +33,7 @@ trait EnumType
         return $this->usingTinyInt($platform) ? $id : $value;
     }
 
-    public function getSQLDeclaration(array $column, AbstractPlatform $platform)
+    public function getSQLDeclaration(array $column, AbstractPlatform $platform): string
     {
         return match (true) {
             // For Postgres: CREATE THE TYPE MANUALLY!
