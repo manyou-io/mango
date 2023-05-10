@@ -8,14 +8,19 @@ use Doctrine\DBAL\Connection;
 use Manyou\Mango\ApiPlatform\SerializerInitializerContextBuilder;
 use Manyou\Mango\Doctrine\Driver\Oci8InitializeSession;
 use Manyou\Mango\Doctrine\SchemaProvider;
-use Manyou\Mango\Operation\Doctrine\TableProvider\OperationLogsTable;
-use Manyou\Mango\Operation\Doctrine\TableProvider\OperationsTable;
-use Manyou\Mango\Operation\Messenger\Middleware\OperationMiddware;
-use Manyou\Mango\Operation\Monolog\OperationLogHandler;
-use Manyou\Mango\Operation\Repository\OperationRepository;
+use Manyou\Mango\MessageLoop\Doctrine\Table\MessageLoopsTable;
+use Manyou\Mango\MessageLoop\MessageLoopRepository;
+use Manyou\Mango\MessageLoop\Messenger\Middleware\MessageLoopMiddleware;
+use Manyou\Mango\Serializer\MoneyNormalizer;
+use Manyou\Mango\TaskQueue\Doctrine\Table\TaskLogsTable;
+use Manyou\Mango\TaskQueue\Doctrine\Table\TasksTable;
+use Manyou\Mango\TaskQueue\Messenger\Middleware\TaskQueueMiddware;
+use Manyou\Mango\TaskQueue\Monolog\TaskLogHandler;
 use Monolog\Handler\FingersCrossedHandler;
 use Monolog\Level;
 use Monolog\Processor\PsrLogMessageProcessor;
+
+use function dirname;
 
 return static function (ContainerConfigurator $containerConfigurator): void {
     $services = $containerConfigurator->services();
@@ -25,12 +30,17 @@ return static function (ContainerConfigurator $containerConfigurator): void {
         ->autowire()
         ->autoconfigure();
 
+    $services->load('Manyou\\Mango\\', dirname(__DIR__, 3) . '/')
+        ->exclude(dirname(__DIR__, 3) . '/{Bundle,Tests}');
+
     $services->set(SchemaProvider::class)->public();
     $services->set(Oci8InitializeSession::class);
-    $services->set(OperationsTable::class);
-    $services->set(OperationLogsTable::class);
-    $services->set(OperationMiddware::class);
-    $services->set(OperationRepository::class)->public();
+    $services->set(TasksTable::class);
+    $services->set(TaskLogsTable::class);
+    $services->set(TaskQueueMiddware::class);
+    $services->set(MessageLoopRepository::class)->public();
+    $services->set(MessageLoopsTable::class);
+    $services->set(MessageLoopMiddleware::class);
 
     $services->set('mango.monolog.processor.psr', PsrLogMessageProcessor::class)
         ->arg('$dateFormat', 'Y-m-d\TH:i:s.vp')
@@ -55,13 +65,15 @@ return static function (ContainerConfigurator $containerConfigurator): void {
         ->class(SchemaProvider::class)
         ->arg(Connection::class, service('doctrine.dbal.logging_connection'));
 
-    $services->set(OperationLogHandler::class)
+    $services->set(TaskLogHandler::class)
         ->args([service('mango.doctrine.schema_provider.logging'), Level::Debug->value, false])
         ->call('setFormatter', [service('monolog.formatter.normalizer')]);
 
-    $services->set('monolog.handler.operation', FingersCrossedHandler::class)
-        ->args([service(OperationLogHandler::class), Level::Info->value, 30, true])
+    $services->set('monolog.handler.task_queue', FingersCrossedHandler::class)
+        ->args([service(TaskLogHandler::class), Level::Info->value, 30, true])
         ->call('pushProcessor', [service('mango.monolog.processor.psr')]);
 
     $services->set(SerializerInitializerContextBuilder::class);
+
+    $services->set(MoneyNormalizer::class);
 };

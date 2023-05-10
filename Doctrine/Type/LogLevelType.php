@@ -44,4 +44,9 @@ class LogLevelType extends Type
 
         return $this->doConvertToDatabaseValue($value, $platform);
     }
+
+    private function usingTinyInt(AbstractPlatform $platform): bool
+    {
+        return true;
+    }
 }

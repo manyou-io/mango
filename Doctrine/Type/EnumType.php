@@ -44,7 +44,7 @@ trait EnumType
         };
     }
 
-    private function usingTinyInt(AbstractPlatform $platform)
+    private function usingTinyInt(AbstractPlatform $platform): bool
     {
         return match (true) {
             $platform instanceof PostgreSQLPlatform,

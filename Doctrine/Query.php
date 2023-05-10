@@ -19,6 +19,7 @@ use ErrorException;
 use Generator;
 use InvalidArgumentException;
 use LogicException;
+use Manyou\Mango\Doctrine\Exception\RecordsNotFound;
 use Manyou\Mango\Doctrine\Exception\RowNumUnmatched;
 use RuntimeException;
 
@@ -92,6 +93,13 @@ class Query
     ) {
         $this->builder  = $this->connection->createQueryBuilder();
         $this->platform = $this->connection->getDatabasePlatform();
+    }
+
+    public function insertToUpdate(array $data = []): self
+    {
+        $q = $this->schema->createQuery();
+
+        return $q->update($this->insertInto->getName(), $data);
     }
 
     public function insert(string $into, array $data): self
@@ -295,10 +303,28 @@ class Query
         $fromAlias = $this->addFrom([$this->builder, 'update'], $from);
 
         foreach ($data as $column => $value) {
-            $this->builder->set(...$this->bindUpdate($fromAlias, $column, $value));
+            $this->builder->set(...$this->bindUpdate($column, $value));
         }
 
         return $this;
+    }
+
+    public function delete(string|array $from): self
+    {
+        $this->addFrom([$this->builder, 'delete'], $from);
+
+        return $this;
+    }
+
+    public function patch(string|array $from, array $data = []): ?self
+    {
+        foreach ($data as $column => $value) {
+            if ($value === null) {
+                unset($data[$column]);
+            }
+        }
+
+        return $data === [] ? null : $this->update($from, $data);
     }
 
     /** @return string The from alias */
@@ -613,9 +639,13 @@ class Query
 
     public function fetchOne(): mixed
     {
-        $value = $this->getQueryResult()->fetchOne();
+        $values = $this->getQueryResult()->fetchFirstColumn();
 
-        return $value === false ? null : $this->convertResultToPHPValue('c0', $value);
+        if ($values === []) {
+            throw RecordsNotFound::create();
+        }
+
+        return $this->convertResultToPHPValue('c0', $values[0]);
     }
 
     public function getBuilder(): QueryBuilder
@@ -645,6 +675,23 @@ class Query
 
         return $this->quotedTableAliasMap[$tableAlias] . '.' . $column->getQuotedName($this->platform)
             . ' ' . $operator;
+    }
+
+    public function subQuery(string|array $x, self $subQuery, string $format = '%s'): string
+    {
+        [$tableAlias, $column] = $this->splitColumn($x);
+
+        $column = $this->selectTableMap[$tableAlias]->getColumn($column);
+
+        $values = $subQuery->builder->getParameters();
+        $types  = $subQuery->builder->getParameterTypes();
+
+        foreach ($values as $i => $value) {
+            $this->builder->createPositionalParameter($value, $types[$i] ?? null);
+        }
+
+        return $this->quotedTableAliasMap[$tableAlias] . '.' . $column->getQuotedName($this->platform)
+            . ' ' . sprintf($format, $subQuery->getSQL());
     }
 
     public function comparisonArray(string|array $x, string $operator, array $y): string
@@ -711,6 +758,10 @@ class Query
 
     public function quoteColumn(string|array $column): string
     {
+        if (is_string($column) && isset($this->insertInto)) {
+            return $this->insertInto->getColumn($column)->getQuotedName($this->platform);
+        }
+
         [$tableAlias, $column] = $this->splitColumn($column);
 
         $column = $this->selectTableMap[$tableAlias]->getColumn($column);
@@ -731,9 +782,9 @@ class Query
         ];
     }
 
-    public function bindUpdate(string $tableAlias, string $column, $value): array
+    public function bindUpdate(string $column, $value): array
     {
-        $column = $this->selectTableMap[$tableAlias]->getColumn($column);
+        $column = $this->selectTableMap[$this->fromAlias]->getColumn($column);
         $type   = $column->getType();
 
         $this->builder->createPositionalParameter($value, $type);

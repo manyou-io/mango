@@ -16,8 +16,10 @@ use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
 class SerializerInitializerContextBuilder implements SerializerContextBuilderInterface
 {
     public function __construct(
-        #[MapDecorated] private SerializerContextBuilderInterface $decorated,
-        #[TaggedLocator('mango.api_platform.dto_initializer', 'input_class')] private ContainerInterface $initializers,
+        #[MapDecorated]
+        private SerializerContextBuilderInterface $decorated,
+        #[TaggedLocator('mango.api_platform.dto_initializer', 'input_class')]
+        private ContainerInterface $initializers,
     ) {
     }
 

@@ -11,10 +11,18 @@ use Doctrine\DBAL\Schema\Schema;
 use Doctrine\Migrations\Provider\SchemaProvider as SchemaProviderInterface;
 use InvalidArgumentException;
 use Manyou\Mango\Doctrine\Contract\TableProvider;
+use Manyou\Mango\Doctrine\Exception\RowNumUnmatched;
+use PDOException;
 use Symfony\Component\DependencyInjection\Attribute\TaggedIterator;
+use Throwable;
+use UnexpectedValueException;
 
+use function array_map;
 use function array_merge;
+use function implode;
 use function is_string;
+use function strpos;
+use function substr;
 
 class SchemaProvider implements SchemaProviderInterface
 {
@@ -38,7 +46,20 @@ class SchemaProvider implements SchemaProviderInterface
 
     public function transactional(Closure $func)
     {
-        return $this->connection->transactional($func);
+        $this->connection->beginTransaction();
+        try {
+            $res = $func($this);
+            $this->connection->commit();
+
+            return $res;
+        } catch (Throwable $e) {
+            try {
+                $this->connection->rollBack();
+            } catch (PDOException) {
+            }
+
+            throw $e;
+        }
     }
 
     public function toSql(): array
@@ -105,5 +126,68 @@ class SchemaProvider implements SchemaProviderInterface
         }
 
         return $this->connection->executeQuery($sql, array_merge(...$params), array_merge(...$types));
+    }
+
+    public function updateSetFrom(Query $update, Query $select, ?int $expectedRowNum = null): int
+    {
+        $sql       = $update->getSQL();
+        $selectSql = $select->getSQL();
+
+        if (false === $offset = strpos($selectSql, ' FROM ')) {
+            throw new UnexpectedValueException('Invalid select query.');
+        }
+
+        $sql .= substr($selectSql, $offset);
+
+        $params[] = $update->getParameters();
+        $params[] = $select->getParameters();
+
+        $types[] = $update->getParameterTypes();
+        $types[] = $select->getParameterTypes();
+
+        $rowNum = $this->connection->executeStatement($sql, array_merge(...$params), array_merge(...$types));
+
+        if ($rowNum !== ($expectedRowNum ?? $rowNum)) {
+            throw RowNumUnmatched::create($expectedRowNum, $rowNum);
+        }
+
+        return $rowNum;
+    }
+
+    public function getTableQuotedName(string $name): string
+    {
+        return $this->schema->getTable($name)->getQuotedName($this->connection->getDatabasePlatform());
+    }
+
+    public function onConflictDoUpdate(Query $insert, array $conflict, array $update, ?int $expectedRowNum = null)
+    {
+        $sql = $insert->getSQL();
+
+        $conflict = array_map(static fn ($n) => $insert->quoteColumn($n), $conflict);
+
+        $sql .= ' ON CONFLICT (' . implode(', ', $conflict) . ') DO UPDATE';
+
+        $update = $insert->insertToUpdate($update);
+
+        $updateSql = $update->getSQL();
+        if (false === $offset = strpos($updateSql, ' SET ')) {
+            throw new UnexpectedValueException('Invalid update query.');
+        }
+
+        $sql .= substr($updateSql, $offset);
+
+        $params[] = $insert->getParameters();
+        $params[] = $update->getParameters();
+
+        $types[] = $insert->getParameterTypes();
+        $types[] = $update->getParameterTypes();
+
+        $rowNum = $this->connection->executeStatement($sql, array_merge(...$params), array_merge(...$types));
+
+        if ($rowNum !== ($expectedRowNum ?? $rowNum)) {
+            throw RowNumUnmatched::create($expectedRowNum, $rowNum);
+        }
+
+        return $rowNum;
     }
 }

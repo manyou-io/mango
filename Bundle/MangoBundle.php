@@ -15,9 +15,12 @@ use Manyou\Mango\Doctrine\Contract\TableProvider;
 use Manyou\Mango\Doctrine\SchemaProvider;
 use Manyou\Mango\Doctrine\Type\LogLevelType;
 use Manyou\Mango\Doctrine\Type\UlidType;
+use Manyou\Mango\Doctrine\Type\UsDateTimeImmutableType;
 use Manyou\Mango\Doctrine\Type\UuidType;
-use Manyou\Mango\Operation\Doctrine\Type\OperationStatusType;
-use Manyou\Mango\Operation\Messenger\Middleware\OperationMiddware;
+use Manyou\Mango\MessageLoop\MessageLoopInterface;
+use Manyou\Mango\MessageLoop\Messenger\Middleware\MessageLoopMiddleware;
+use Manyou\Mango\TaskQueue\Doctrine\Type\TaskStatusType;
+use Manyou\Mango\TaskQueue\Messenger\Middleware\TaskQueueMiddware;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 use Symfony\Component\HttpKernel\Bundle\AbstractBundle;
@@ -30,17 +33,27 @@ class MangoBundle extends AbstractBundle
             ->registerForAutoconfiguration(TableProvider::class)
             ->addTag('mango.doctrine.table_provider');
 
+        $container
+            ->registerForAutoconfiguration(MessageLoopInterface::class)
+            ->addTag('mango.message_loop');
+
         $container->addCompilerPass(
-            new MessengerMiddlewarePass(['id' => OperationMiddware::class]),
+            new MessengerMiddlewarePass(['id' => TaskQueueMiddware::class]),
             priority: 1,
         );
 
         $container->addCompilerPass(
+            new MessengerMiddlewarePass(['id' => MessageLoopMiddleware::class]),
+            priority: 2,
+        );
+
+        $container->addCompilerPass(
             new DoctrineTypePass([
-                OperationStatusType::NAME => OperationStatusType::class,
+                TaskStatusType::NAME => TaskStatusType::class,
                 LogLevelType::NAME => LogLevelType::class,
                 'ulid' => UlidType::class,
                 'uuid' => UuidType::class,
+                UsDateTimeImmutableType::NAME => UsDateTimeImmutableType::class,
             ]),
             priority: 1,
         );
@@ -51,8 +64,8 @@ class MangoBundle extends AbstractBundle
 
         $container->addCompilerPass(
             new MonologChannelPass(
-                ['operation'],
-                ['monolog.handler.operation' => 'operation'],
+                ['task'],
+                ['monolog.handler.task_queue' => 'task'],
             ),
             priority: 1,
         );
