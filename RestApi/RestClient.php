@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Manyou\Mango\RestApi;
 
+use Symfony\Component\Serializer\Normalizer\AbstractObjectNormalizer;
 use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 use Symfony\Contracts\HttpClient\ResponseInterface;
@@ -21,7 +22,8 @@ class RestClient implements Client
         $options = ['query' => $this->normalizer->normalize($request, null, ['groups' => ['query']])];
 
         $options += match ($request->getMethod()) {
-            'POST', 'PUT', 'PATCH' => ['json' => $this->normalizer->normalize($request, null, ['groups' => ['rest']])],
+            'POST', 'PUT' => ['json' => $this->normalizer->normalize($request, null, ['groups' => ['rest']])],
+            'PATCH' => ['json' => $this->normalizer->normalize($request, null, ['groups' => ['rest'], AbstractObjectNormalizer::SKIP_NULL_VALUES => true])],
             default => [],
         };
 
