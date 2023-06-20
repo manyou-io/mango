@@ -8,5 +8,5 @@ use Symfony\Contracts\HttpClient\ResponseInterface;
 
 interface Client
 {
-    public function request(Request $request): ResponseInterface;
+    public function request(Request $request, array $options = []): ResponseInterface;
 }

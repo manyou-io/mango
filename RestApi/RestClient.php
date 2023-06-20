@@ -17,13 +17,10 @@ class RestClient implements Client
     ) {
     }
 
-    public function request(Request $request): ResponseInterface
+    public function request(Request $request, array $options = []): ResponseInterface
     {
-        $options = ['query' => $this->normalizer->normalize($request, null, ['groups' => ['query']])];
-
         $options += match ($request->getMethod()) {
-            'POST', 'PUT' => ['json' => $this->normalizer->normalize($request, null, ['groups' => ['rest']])],
-            'PATCH' => ['json' => $this->normalizer->normalize($request, null, ['groups' => ['rest'], AbstractObjectNormalizer::SKIP_NULL_VALUES => true])],
+            'POST', 'PUT', 'PATCH' => ['json' => $this->normalizer->normalize($request, null, [AbstractObjectNormalizer::SKIP_UNINITIALIZED_VALUES => true])],
             default => [],
         };
 
