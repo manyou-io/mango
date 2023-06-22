@@ -14,6 +14,7 @@ use Manyou\Mango\DependencyInjection\MonologChannelPass;
 use Manyou\Mango\Doctrine\Contract\TableProvider;
 use Manyou\Mango\Doctrine\SchemaProvider;
 use Manyou\Mango\Doctrine\Type\LogLevelType;
+use Manyou\Mango\Doctrine\Type\ObjectJsonType;
 use Manyou\Mango\Doctrine\Type\UlidType;
 use Manyou\Mango\Doctrine\Type\UsDateTimeImmutableType;
 use Manyou\Mango\Doctrine\Type\UuidType;
@@ -54,6 +55,7 @@ class MangoBundle extends AbstractBundle
                 'ulid' => UlidType::class,
                 'uuid' => UuidType::class,
                 UsDateTimeImmutableType::NAME => UsDateTimeImmutableType::class,
+                ObjectJsonType::NAME => ObjectJsonType::class,
             ]),
             priority: 1,
         );
