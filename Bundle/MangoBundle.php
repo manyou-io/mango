@@ -11,6 +11,7 @@ use Manyou\Mango\DependencyInjection\DoctrineMigrationsDependencyPass;
 use Manyou\Mango\DependencyInjection\DoctrineTypePass;
 use Manyou\Mango\DependencyInjection\MessengerMiddlewarePass;
 use Manyou\Mango\DependencyInjection\MonologChannelPass;
+use Manyou\Mango\DependencyInjection\ReplaceJWKSetService;
 use Manyou\Mango\Doctrine\Contract\TableProvider;
 use Manyou\Mango\Doctrine\SchemaProvider;
 use Manyou\Mango\Doctrine\Type\LogLevelType;
@@ -78,6 +79,7 @@ class MangoBundle extends AbstractBundle
         );
 
         $container->addCompilerPass(new DoctrineEnableSavepointPass());
+        $container->addCompilerPass(new ReplaceJWKSetService());
     }
 
     public function prependExtension(ContainerConfigurator $container, ContainerBuilder $builder): void

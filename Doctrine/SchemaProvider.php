@@ -159,6 +159,23 @@ class SchemaProvider implements SchemaProviderInterface
         return $this->schema->getTable($name)->getQuotedName($this->connection->getDatabasePlatform());
     }
 
+    public function onConflictDoNothing(Query $insert, array $conflict, ?int $expectedRowNum = null): int
+    {
+        $sql = $insert->getSQL();
+
+        $conflict = array_map(static fn ($n) => $insert->quoteColumn($n), $conflict);
+
+        $sql .= ' ON CONFLICT (' . implode(', ', $conflict) . ') DO NOTHING';
+
+        $rowNum = $this->connection->executeStatement($sql, $insert->getParameters(), $insert->getParameterTypes());
+
+        if ($rowNum !== ($expectedRowNum ?? $rowNum)) {
+            throw RowNumUnmatched::create($expectedRowNum, $rowNum);
+        }
+
+        return $rowNum;
+    }
+
     public function onConflictDoUpdate(Query $insert, array $conflict, array $update, ?int $expectedRowNum = null)
     {
         $sql = $insert->getSQL();
