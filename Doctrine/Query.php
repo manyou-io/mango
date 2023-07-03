@@ -392,14 +392,23 @@ class Query
         }
     }
 
-    public function selectRaw(string $prefix, string|array $column, string $suffix, ?string $type = null, ?string $alias = null): self
+    public function selectRaw(array $alias, string $type, string|array ...$parts): self
     {
-        [$tableAlias, $column] = $this->splitColumn($column);
+        $sql = '';
 
-        $alias ??= $column;
+        foreach ($parts as $part) {
+            if (is_array($part)) {
+                [$tableAlias, $column] = $part;
 
-        $column = $this->selectTableMap[$tableAlias]->getColumn($column);
-        $type   = null === $type ? $column->getType() : Type::getType($type);
+                $column = $this->selectTableMap[$tableAlias]->getColumn($column);
+
+                $sql .= $this->quotedTableAliasMap[$tableAlias] . '.' . $column->getQuotedName($this->platform);
+            } else {
+                $sql .= $part;
+            }
+        }
+
+        [$tableAlias, $alias] = $alias;
 
         $resultAlias = $this->getResultAlias();
 
@@ -407,14 +416,11 @@ class Query
         $this->resultTableAliasMap[$resultAlias]  = $tableAlias;
         $this->resultColumnAliasMap[$resultAlias] = $alias;
 
+        $type = Type::getType($type);
+
         $this->selects[] =
-                $prefix
-                . $type->convertToPHPValueSQL(
-                    $this->quotedTableAliasMap[$tableAlias] . '.' . $column->getQuotedName($this->platform),
-                    $this->platform,
-                )
-                . $suffix
-                . ' ' . $this->platform->quoteSingleIdentifier($resultAlias);
+            $type->convertToPHPValueSQL($sql, $this->platform) . ' '
+            . $this->platform->quoteSingleIdentifier($resultAlias);
 
         return $this;
     }
