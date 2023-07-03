@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Manyou\Mango\Tests;
 
 use Doctrine\DBAL\Exception\TableNotFoundException;
+use Doctrine\DBAL\Types\Types;
 use Manyou\Mango\Doctrine\SchemaProvider;
 use Manyou\Mango\Tests\Fixtures\Tables\GroupTable;
 use Manyou\Mango\Tests\Fixtures\Tables\PostsTable;
@@ -142,6 +143,23 @@ class DoctrineTest extends KernelTestCase
             ['id' => 12, 'group_id' => 2, 'title' => 'post 2'],
         );
         $this->assertSame(2, $rowNum);
+
+        $q = $schema->createQuery();
+        $q->selectFrom([PostsTable::NAME, 'p'], null)
+            ->selectRaw(['p', 'count'], Types::INTEGER, 'count(*)');
+
+        $this->assertEqualsCanonicalizing([
+            ['p' => ['count' => 2]],
+        ], $q->fetchAllAssociative());
+
+        $q = $schema->createQuery();
+        $q->selectFrom([PostsTable::NAME, 'p'], null)
+            ->selectRaw(['p', 'sum'], Types::INTEGER, '(', ['p', 'id'], '+', ['p', 'group_id'], ')');
+
+        $this->assertEqualsCanonicalizing([
+            ['p' => ['sum' => 12]],
+            ['p' => ['sum' => 14]],
+        ], $q->fetchAllAssociative());
 
         $q = $schema->createQuery();
         $q->selectFrom([PostsTable::NAME, 'p'])

@@ -411,12 +411,12 @@ class Query
         [$tableAlias, $alias] = $alias;
 
         $resultAlias = $this->getResultAlias();
+        $type        = Type::getType($type);
 
         $this->resultTypeMap[$resultAlias]        = $type;
         $this->resultTableAliasMap[$resultAlias]  = $tableAlias;
         $this->resultColumnAliasMap[$resultAlias] = $alias;
 
-        $type = Type::getType($type);
 
         $this->selects[] =
             $type->convertToPHPValueSQL($sql, $this->platform) . ' '
