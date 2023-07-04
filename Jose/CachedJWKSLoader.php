@@ -11,6 +11,8 @@ use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Contracts\Cache\CacheInterface;
 use Symfony\Contracts\Cache\ItemInterface;
 
+use function spl_object_hash;
+
 class CachedJWKSLoader implements JWKSLoader
 {
     public function __construct(
