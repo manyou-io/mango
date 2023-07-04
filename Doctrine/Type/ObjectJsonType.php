@@ -26,7 +26,7 @@ class ObjectJsonType extends JsonType
         return self::NAME;
     }
 
-    public function convertToDatabaseValue($value, AbstractPlatform $platform)
+    public function convertToDatabaseValue($value, AbstractPlatform $platform): mixed
     {
         if ($value === null) {
             return null;

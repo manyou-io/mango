@@ -45,4 +45,11 @@ class MoneyNormalizer implements NormalizerInterface, CacheableSupportsMethodInt
     {
         return true;
     }
+
+    public function getSupportedTypes(?string $format): array
+    {
+        return [
+            Money::class => true,
+        ];
+    }
 }
