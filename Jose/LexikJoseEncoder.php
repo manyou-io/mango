@@ -8,7 +8,7 @@ use Closure;
 use Lexik\Bundle\JWTAuthenticationBundle\Encoder\JWTEncoderInterface;
 use SpomkyLabs\LexikJoseBundle\Encoder\LexikJoseEncoder as SpomkyLexikJoseEncoder;
 use Symfony\Component\DependencyInjection\Attribute\AsDecorator;
-use Symfony\Component\DependencyInjection\Attribute\MapDecorated;
+use Symfony\Component\DependencyInjection\Attribute\AutowireDecorated;
 
 #[AsDecorator(decorates: SpomkyLexikJoseEncoder::class)]
 class LexikJoseEncoder implements JWTEncoderInterface
@@ -16,7 +16,7 @@ class LexikJoseEncoder implements JWTEncoderInterface
     private Closure $propertyAccessor;
 
     public function __construct(
-        #[MapDecorated]
+        #[AutowireDecorated]
         private SpomkyLexikJoseEncoder $inner,
         private JWKSLoader $jwksLoader,
     ) {

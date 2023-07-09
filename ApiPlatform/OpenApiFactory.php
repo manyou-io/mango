@@ -7,7 +7,7 @@ namespace Manyou\Mango\ApiPlatform;
 use ApiPlatform\OpenApi\Factory\OpenApiFactoryInterface;
 use ApiPlatform\OpenApi\OpenApi;
 use Symfony\Component\DependencyInjection\Attribute\AsDecorator;
-use Symfony\Component\DependencyInjection\Attribute\MapDecorated;
+use Symfony\Component\DependencyInjection\Attribute\AutowireDecorated;
 use Symfony\Component\DependencyInjection\Attribute\TaggedIterator;
 
 #[AsDecorator('api_platform.openapi.factory')]
@@ -24,7 +24,7 @@ class OpenApiFactory implements OpenApiFactoryInterface
 
     /** @param OpenApiProcessor[] $processors */
     public function __construct(
-        #[MapDecorated] private OpenApiFactoryInterface $inner,
+        #[AutowireDecorated] private OpenApiFactoryInterface $inner,
         #[TaggedIterator('mango.openapi.openapi_processor')]
         private iterable $processors,
     ) {
