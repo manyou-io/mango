@@ -21,7 +21,7 @@ class MessengerMiddlewarePass implements CompilerPassInterface
         $this->middlewaresToAdd = $middlewaresToAdd;
     }
 
-    public function process(ContainerBuilder $container)
+    public function process(ContainerBuilder $container): void
     {
         $busIds = [];
 

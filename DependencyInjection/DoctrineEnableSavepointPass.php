@@ -13,7 +13,7 @@ class DoctrineEnableSavepointPass implements CompilerPassInterface
     {
     }
 
-    public function process(ContainerBuilder $container)
+    public function process(ContainerBuilder $container): void
     {
         if (! $container->hasParameter('doctrine.connections')) {
             return;

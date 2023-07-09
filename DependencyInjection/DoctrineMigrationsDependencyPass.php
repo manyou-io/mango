@@ -18,7 +18,7 @@ class DoctrineMigrationsDependencyPass implements CompilerPassInterface
     ) {
     }
 
-    public function process(ContainerBuilder $container)
+    public function process(ContainerBuilder $container): void
     {
         $diDefinition = $container->getDefinition('doctrine.migrations.dependency_factory');
 

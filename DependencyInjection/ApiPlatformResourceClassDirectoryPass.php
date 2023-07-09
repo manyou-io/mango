@@ -15,7 +15,7 @@ class ApiPlatformResourceClassDirectoryPass implements CompilerPassInterface
     ) {
     }
 
-    public function process(ContainerBuilder $container)
+    public function process(ContainerBuilder $container): void
     {
         if ($this->paths === []) {
             return;

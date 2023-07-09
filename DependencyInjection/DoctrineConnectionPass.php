@@ -14,7 +14,7 @@ class DoctrineConnectionPass implements CompilerPassInterface
     {
     }
 
-    public function process(ContainerBuilder $container)
+    public function process(ContainerBuilder $container): void
     {
         $connections = $container->hasParameter('doctrine.connections')
             ? $container->getParameter('doctrine.connections')

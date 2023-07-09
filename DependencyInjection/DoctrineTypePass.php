@@ -14,7 +14,7 @@ class DoctrineTypePass implements CompilerPassInterface
     {
     }
 
-    public function process(ContainerBuilder $container)
+    public function process(ContainerBuilder $container): void
     {
         if (! $container->hasParameter('doctrine.dbal.connection_factory.types')) {
             return;

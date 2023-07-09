@@ -25,7 +25,7 @@ class MonologChannelPass implements CompilerPassInterface
         $this->handlersToChannels = array_map([$this, 'processHandlersToChannels'], $handlersToChannels);
     }
 
-    public function process(ContainerBuilder $container)
+    public function process(ContainerBuilder $container): void
     {
         if ($this->additionalChannels !== []) {
             $additionalChannels = $container->hasParameter('monolog.additional_channels')
