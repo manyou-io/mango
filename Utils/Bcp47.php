@@ -5,32 +5,50 @@ declare(strict_types=1);
 namespace Manyou\Mango\Utils;
 
 use function array_filter;
-use function array_key_exists;
-use function array_splice;
-use function count;
 use function locale_compose;
 use function locale_parse;
 use function preg_match;
-use function strlen;
-use function strrpos;
 use function strtoupper;
-use function substr;
 
 class Bcp47
 {
-    public static function createObject($base)
+    private function extractVariantsFromLocaleTags(array $locale): array
     {
-        $language = $base['language'];
-        $script   = $base['script'] ?? '';
-        $region   = $base['region'] ?? '';
-        $variant  = $base['variant'] ?? '';
+        $variants = [];
+        for ($i = 0; $i <= 14; $i++) {
+            $key = 'variant' . $i;
+            if (!isset($locale[$key])) {
+                break;
+            }
+            $variants[$i] = $locale[$key];
+        }
+
+        return $variants;
+    }
+
+    private function convertVariantsToLocaleTags(array $variants): array
+    {
+        $locale = [];
+        foreach ($variants as $key => $value) {
+            $locale['variant' . $key] = $value;
+        }
+
+        return $locale;
+    }
+
+    private function getCandidateLocaleTags(array $locale): array
+    {
+        $language = $locale['language'];
+        $script   = $locale['script'] ?? '';
+        $region   = $locale['region'] ?? '';
+        $variants = $this->extractVariantsFromLocaleTags($locale);
 
         // Special handling for Norwegian
         $isNorwegianBokmal  = false;
         $isNorwegianNynorsk = false;
         if ($language === 'no') {
-            if ($region === 'NO' && $variant === 'NY') {
-                $variant            = '';
+            if ($region === 'NO' && $variants === ['NY']) {
+                $variants           = [];
                 $isNorwegianNynorsk = true;
             } else {
                 $isNorwegianBokmal = true;
@@ -38,12 +56,12 @@ class Bcp47
         }
 
         if ($language === 'nb' || $isNorwegianBokmal) {
-            $tmpList = self::getDefaultList('nb', $script, $region, $variant);
+            $tmpList = $this->enumerateDefaultCandidates('nb', $script, $region, $variants);
             // Insert a locale replacing "nb" with "no" for every list entry
             $bokmalList = [];
             foreach ($tmpList as $l) {
                 $bokmalList[] = $l;
-                if (strlen($l['language']) === 0) {
+                if (!$l['language']) {
                     break;
                 }
 
@@ -56,135 +74,111 @@ class Bcp47
 
         if ($language === 'nn' || $isNorwegianNynorsk) {
             // Insert no_NO_NY, no_NO, no after nn
-            $nynorskList = self::getDefaultList('nn', $script, $region, $variant);
-            array_splice($nynorskList, count($nynorskList), 0, [locale_parse('no_NO_NY'), locale_parse('no_NO'), locale_parse('no')]);
+            $nynorskList = $this->enumerateDefaultCandidates('nn', $script, $region, $variants);
 
-            return $nynorskList;
+            return [...$nynorskList, locale_parse('no_NO_NY'), locale_parse('no_NO'), locale_parse('no')];
         }
 
         // Special handling for Chinese
-
         if ($language === 'zh') {
-            if (strlen($script) === 0 && strlen($region) > 0) {
-                // Supply script for users who want to use zh_Hans/zh_Hant
-                // as bundle names (recommended for PHP7+)
-                if ($region === 'TW' || $region === 'HK' || $region === 'MO') {
-                    $script = 'Hant';
-                } elseif ($region === 'CN' || $region === 'SG') {
-                    $script = 'Hans';
-                }
-            } elseif (strlen($script) > 0 && strlen($region) === 0) {
-                // Supply region(country) for users who still package Chinese
-                // bundles using old convension.
-                if ($script === 'Hans') {
-                    $region = 'CN';
-                } elseif ($script === 'Hant') {
-                    $region = 'TW';
-                }
+            if (!$script && $region) {
+                $script = match ($region) {
+                    'TW', 'HK', 'MO' => 'Hant',
+                    'CN', 'SG' => 'Hans',
+                    default => $script,
+                };
+            } elseif ($script && !$region) {
+                $region = match ($script) {
+                    'Hans' => 'CN',
+                    'Hant' => 'TW',
+                    default => $region,
+                };
             }
         }
 
-        return self::getDefaultList($language, $script, $region, $variant);
+        return $this->enumerateDefaultCandidates($language, $script, $region, $variants);
     }
 
-    private function getDefaultList($language, $script, $region, $variant)
+    private function enumerateDefaultCandidates(string $language = '', string $script = '', string $region = '', array $variants = []): array
     {
-        $variants = null;
+        $locales = [];
 
-        if (strlen($variant) > 0) {
-            $variants = [];
-            $idx      = strlen($variant);
-            while ($idx !== -1) {
-                $variants[] = substr($variant, 0, $idx);
-                $idx        = strrpos($variant, '_', --$idx);
-            }
+        foreach ($variants as $v) {
+            $locales[] = ['language' => $language, 'script' => $script, 'region' => $region, ...$this->convertVariantsToLocaleTags([$v])];
         }
 
-        $list = [];
-
-        if ($variants !== null) {
-            foreach ($variants as $v) {
-                $list[] = ['language' => $language, 'script' => $script, 'region' => $region, 'variant' => $v];
-            }
+        if ($region) {
+            $locales[] = ['language' => $language, 'script' => $script, 'region' => $region];
         }
 
-        if (strlen($region) > 0) {
-            $list[] = ['language' => $language, 'script' => $script, 'region' => $region, 'variant' => ''];
-        }
-
-        if (strlen($script) > 0) {
-            $list[] = ['language' => $language, 'script' => $script, 'region' => '', 'variant' => ''];
+        if ($script) {
+            $locales[] = ['language' => $language, 'script' => $script, 'region' => ''];
 
             // With script, after truncating variant, region and script,
             // start over without script.
-            if ($variants !== null) {
-                foreach ($variants as $v) {
-                    $list[] = ['language' => $language, 'script' => '', 'region' => $region, 'variant' => $v];
-                }
+            foreach ($variants as $v) {
+                $locales[] = ['language' => $language, 'script' => '', 'region' => $region, ...$this->convertVariantsToLocaleTags([$v])];
             }
 
-            if (strlen($region) > 0) {
-                $list[] = ['language' => $language, 'script' => '', 'region' => $region, 'variant' => ''];
+            if ($region) {
+                $locales[] = ['language' => $language, 'script' => '', 'region' => $region];
             }
         }
 
-        if (strlen($language) > 0) {
-            $list[] = ['language' => $language, 'script' => '', 'region' => '', 'variant' => ''];
+        if ($language) {
+            $locales[] = ['language' => $language, 'script' => '', 'region' => ''];
         }
 
-        // Add root locale at the end
-        $list[] = ['language' => '', 'script' => '', 'region' => '', 'variant' => ''];
-
-        return $list;
+        return $locales;
     }
 
-    public function getCandidateLocales($locale)
+    public function getCandidateLocales(string $locale): array
     {
-        $baseLocale = locale_parse($locale);
+        $parsedLocale = locale_parse($locale);
 
         preg_match('/-u-rg-([a-z]{2})zzzz(?:-|$)/i', $locale, $matches);
         if (isset($matches[1])) {
-            $baseLocale['region'] ??= strtoupper($matches[1]);
+            $parsedLocale['region'] ??= strtoupper($matches[1]);
         }
 
-        $candidateLocales = self::createObject($baseLocale);
+        $candidateLocales = $this->getCandidateLocaleTags($parsedLocale);
 
-        // Convert the associative array to string and remove empty fields
-        foreach ($candidateLocales as $key => $value) {
-            if ([] === $value = array_filter($value, static fn ($v) => $v !== '')) {
+        // Remove empty tags and compose the locale string
+        foreach ($candidateLocales as $key => $tags) {
+            if ([] === $tags = array_filter($tags, static fn ($v) => $v !== '')) {
                 unset($candidateLocales[$key]);
                 continue;
             }
 
-            $candidateLocales[$key] = locale_compose($value);
+            $candidateLocales[$key] = locale_compose($tags);
         }
 
         return $candidateLocales;
     }
 
-    public function getBestMatch($userLocale, $availableLocales, $defaultLocale = null)
+    public function getBestMatch(string $clientLocale, array $availableLocales, ?string $defaultLocale = null): ?string
     {
         if ($availableLocales === []) {
-            return $defaultLocale;
+            return null;
         }
 
-        $userCandidates = self::getCandidateLocales($userLocale);
+        $userCandidates = $this->getCandidateLocales($clientLocale);
 
         $firstMatches = [];
 
         foreach ($availableLocales as $language) {
-            $languageCandidates = self::getCandidateLocales($language);
+            $languageCandidates = $this->getCandidateLocales($language);
             foreach ($languageCandidates as $languageCandidate) {
                 $firstMatches[$languageCandidate] ??= $language;
             }
         }
 
         foreach ($userCandidates as $userCandidate) {
-            if (array_key_exists($userCandidate, $firstMatches)) {
+            if (isset($firstMatches[$userCandidate])) {
                 return $firstMatches[$userCandidate];
             }
         }
 
-        return $defaultLocale ?? $availableLocales[0];
+        return in_array($defaultLocale, $availableLocales, true) ? $defaultLocale : $availableLocales[0];
     }
 }

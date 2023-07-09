@@ -7,7 +7,7 @@ namespace Manyou\Mango\ApiPlatform;
 use ApiPlatform\Serializer\SerializerContextBuilderInterface;
 use Psr\Container\ContainerInterface;
 use Symfony\Component\DependencyInjection\Attribute\AsDecorator;
-use Symfony\Component\DependencyInjection\Attribute\MapDecorated;
+use Symfony\Component\DependencyInjection\Attribute\AutowireDecorated;
 use Symfony\Component\DependencyInjection\Attribute\TaggedLocator;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
@@ -16,7 +16,7 @@ use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
 class SerializerInitializerContextBuilder implements SerializerContextBuilderInterface
 {
     public function __construct(
-        #[MapDecorated]
+        #[AutowireDecorated]
         private SerializerContextBuilderInterface $decorated,
         #[TaggedLocator('mango.api_platform.dto_initializer', 'input_class')]
         private ContainerInterface $initializers,

@@ -6,11 +6,11 @@ namespace Manyou\Mango\Serializer;
 
 use Money\Currency;
 use Money\Money;
-use Symfony\Component\Serializer\Normalizer\CacheableSupportsMethodInterface;
+use Symfony\Component\Serializer\Exception\NotNormalizableValueException;
 use Symfony\Component\Serializer\Normalizer\DenormalizerInterface;
 use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
 
-class MoneyNormalizer implements NormalizerInterface, CacheableSupportsMethodInterface, DenormalizerInterface
+class MoneyNormalizer implements NormalizerInterface, DenormalizerInterface
 {
     public function denormalize(mixed $data, string $type, ?string $format = null, array $context = []): mixed
     {
@@ -18,7 +18,9 @@ class MoneyNormalizer implements NormalizerInterface, CacheableSupportsMethodInt
             return $data;
         }
 
-        // TODO: throw exception if amount and currency are not set
+        if (!isset($data['amount'], $data['currency'])) {
+            return new NotNormalizableValueException('Money objects should have "amount" and "currency" set.');
+        }
 
         return new Money($data['amount'], new Currency($data['currency']));
     }
@@ -39,11 +41,6 @@ class MoneyNormalizer implements NormalizerInterface, CacheableSupportsMethodInt
     public function supportsNormalization($data, ?string $format = null, array $context = []): bool
     {
         return $data instanceof Money;
-    }
-
-    public function hasCacheableSupportsMethod(): bool
-    {
-        return true;
     }
 
     public function getSupportedTypes(?string $format): array
