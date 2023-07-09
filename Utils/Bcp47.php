@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Manyou\Mango\Utils;
 
 use function array_filter;
+use function implode;
+use function in_array;
 use function locale_compose;
 use function locale_parse;
 use function preg_match;
@@ -12,14 +14,19 @@ use function strtoupper;
 
 class Bcp47
 {
+    private array $firstMatchesCache = [];
+
+    private array $candidateLocalesCache = [];
+
     private function extractVariantsFromLocaleTags(array $locale): array
     {
         $variants = [];
         for ($i = 0; $i <= 14; $i++) {
             $key = 'variant' . $i;
-            if (!isset($locale[$key])) {
+            if (! isset($locale[$key])) {
                 break;
             }
+
             $variants[$i] = $locale[$key];
         }
 
@@ -61,7 +68,7 @@ class Bcp47
             $bokmalList = [];
             foreach ($tmpList as $l) {
                 $bokmalList[] = $l;
-                if (!$l['language']) {
+                if (! $l['language']) {
                     break;
                 }
 
@@ -81,13 +88,13 @@ class Bcp47
 
         // Special handling for Chinese
         if ($language === 'zh') {
-            if (!$script && $region) {
+            if (! $script && $region) {
                 $script = match ($region) {
                     'TW', 'HK', 'MO' => 'Hant',
                     'CN', 'SG' => 'Hans',
                     default => $script,
                 };
-            } elseif ($script && !$region) {
+            } elseif ($script && ! $region) {
                 $region = match ($script) {
                     'Hans' => 'CN',
                     'Hant' => 'TW',
@@ -99,8 +106,12 @@ class Bcp47
         return $this->enumerateDefaultCandidates($language, $script, $region, $variants);
     }
 
-    private function enumerateDefaultCandidates(string $language = '', string $script = '', string $region = '', array $variants = []): array
-    {
+    private function enumerateDefaultCandidates(
+        string $language = '',
+        string $script = '',
+        string $region = '',
+        array $variants = [],
+    ): array {
         $locales = [];
 
         foreach ($variants as $v) {
@@ -134,6 +145,10 @@ class Bcp47
 
     public function getCandidateLocales(string $locale): array
     {
+        if (isset($this->candidateLocalesCache[$locale])) {
+            return $this->candidateLocalesCache[$locale];
+        }
+
         $parsedLocale = locale_parse($locale);
 
         preg_match('/-u-rg-([a-z]{2})zzzz(?:-|$)/i', $locale, $matches);
@@ -153,7 +168,27 @@ class Bcp47
             $candidateLocales[$key] = locale_compose($tags);
         }
 
-        return $candidateLocales;
+        return $this->candidateLocalesCache[$locale] = $candidateLocales;
+    }
+
+    private function getFirstMatches(array $availableLocales): array
+    {
+        $cacheKey = implode("\0", $availableLocales);
+
+        if (isset($this->firstMatchesCache[$cacheKey])) {
+            return $this->firstMatchesCache[$cacheKey];
+        }
+
+        $firstMatches = [];
+
+        foreach ($availableLocales as $locale) {
+            $candidates = $this->getCandidateLocales($locale);
+            foreach ($candidates as $candidate) {
+                $firstMatches[$candidate] ??= $locale;
+            }
+        }
+
+        return $this->firstMatchesCache[$cacheKey] = $firstMatches;
     }
 
     public function getBestMatch(string $clientLocale, array $availableLocales, ?string $defaultLocale = null): ?string
@@ -162,20 +197,13 @@ class Bcp47
             return null;
         }
 
-        $userCandidates = $this->getCandidateLocales($clientLocale);
+        $candidates = $this->getCandidateLocales($clientLocale);
 
-        $firstMatches = [];
+        $firstMatches = $this->getFirstMatches($availableLocales);
 
-        foreach ($availableLocales as $language) {
-            $languageCandidates = $this->getCandidateLocales($language);
-            foreach ($languageCandidates as $languageCandidate) {
-                $firstMatches[$languageCandidate] ??= $language;
-            }
-        }
-
-        foreach ($userCandidates as $userCandidate) {
-            if (isset($firstMatches[$userCandidate])) {
-                return $firstMatches[$userCandidate];
+        foreach ($candidates as $candidate) {
+            if (isset($firstMatches[$candidate])) {
+                return $firstMatches[$candidate];
             }
         }
 
