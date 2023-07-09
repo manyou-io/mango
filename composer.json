@@ -5,7 +5,6 @@
     "require": {
         "php": ">=8.1",
         "symfony/dependency-injection": "^6.3",
-        "api-platform/core": "^3.0",
         "doctrine/doctrine-migrations-bundle": "^3.2",
         "doctrine/doctrine-bundle": "^2.7",
         "symfony/framework-bundle": "^6.3",
@@ -19,7 +18,8 @@
     },
     "require-dev": {
         "symfony/http-kernel": "^6.3",
-        "symfony/yaml": "^6.3"
+        "symfony/yaml": "^6.3",
+        "api-platform/core": "^3.0"
     },
     "license": "Apache-2.0",
     "autoload": {
