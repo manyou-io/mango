@@ -8,9 +8,6 @@ use Doctrine\DBAL\Connection;
 use Manyou\Mango\ApiPlatform\SerializerInitializerContextBuilder;
 use Manyou\Mango\Doctrine\Driver\Oci8InitializeSession;
 use Manyou\Mango\Doctrine\SchemaProvider;
-use Manyou\Mango\MessageLoop\Doctrine\Table\MessageLoopsTable;
-use Manyou\Mango\MessageLoop\MessageLoopRepository;
-use Manyou\Mango\MessageLoop\Messenger\Middleware\MessageLoopMiddleware;
 use Manyou\Mango\Serializer\MoneyNormalizer;
 use Manyou\Mango\TaskQueue\Doctrine\Table\TaskLogsTable;
 use Manyou\Mango\TaskQueue\Doctrine\Table\TasksTable;
@@ -38,9 +35,6 @@ return static function (ContainerConfigurator $containerConfigurator): void {
     $services->set(TasksTable::class);
     $services->set(TaskLogsTable::class);
     $services->set(TaskQueueMiddware::class);
-    $services->set(MessageLoopRepository::class)->public();
-    $services->set(MessageLoopsTable::class);
-    $services->set(MessageLoopMiddleware::class);
 
     $services->set('mango.monolog.processor.psr', PsrLogMessageProcessor::class)
         ->arg('$dateFormat', 'Y-m-d\TH:i:s.vp')

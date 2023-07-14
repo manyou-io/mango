@@ -14,8 +14,6 @@ use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\DelayStamp;
 use Symfony\Component\Messenger\Transport\Serialization\SerializerInterface;
 
-use function array_map;
-
 class Scheduler
 {
     public function __construct(
@@ -25,24 +23,54 @@ class Scheduler
     ) {
     }
 
-    public function schedule(string $key, DateTimeImmutable $availableAt, object $message, array $stamps = [], bool $onConflictUpdate = true): void
+    public function upsert(string $key, DateTimeImmutable $availableAt, object $message, array $stamps = []): bool
     {
-        $envelope = Envelope::wrap($message, $stamps);
+        return $this->schedule($key, $availableAt, $message, $stamps, function (string $key, DateTimeImmutable $availableAt, array $envelope): bool {
+            $this->schema->onConflictDoUpdate(
+                $this->schema->createQuery()->insert(
+                    ScheduledMessagesTable::NAME,
+                    [
+                        'key' => $key,
+                        'availableAt' => $availableAt,
+                        'envelope' => $envelope,
+                    ],
+                ),
+                conflict: ['key'],
+                update: ['availableAt' => $availableAt, 'envelope' => $envelope],
+                expectedRowNum: 1,
+            );
 
-        // trunc availableAt to seconds
-        $availableAt = $availableAt->setTime(...array_map(
-            static fn ($v) => (int) $availableAt->format($v),
-            ['H', 'i', 's'],
-        ));
+            return true;
+        });
+    }
 
-        $this->schema->transactional(function () use ($key, $availableAt, $envelope, $onConflictUpdate) {
-            if (! $this->scheduleMessage($key, $availableAt, $envelope, $onConflictUpdate)) {
-                return;
-            }
+    public function insert(string $key, DateTimeImmutable $availableAt, object $message, array $stamps = []): bool
+    {
+        return $this->schedule($key, $availableAt, $message, $stamps, function (string $key, DateTimeImmutable $availableAt, array $envelope): bool {
+            return 0 < $this->schema->onConflictDoNothing(
+                $this->schema->createQuery()->insert(
+                    ScheduledMessagesTable::NAME,
+                    [
+                        'key' => $key,
+                        'availableAt' => $availableAt,
+                        'envelope' => $envelope,
+                    ],
+                ),
+                conflict: ['key'],
+            );
+        });
+    }
 
-            if ($this->dispatchTrigger($availableAt)) {
-                $this->messageBus->dispatch(new SchedulerTrigger(), [DelayStamp::delayUntil($availableAt)]);
-            }
+    public function update(string $key, DateTimeImmutable $availableAt, object $message, array $stamps = []): bool
+    {
+        return $this->schedule($key, $availableAt, $message, $stamps, function (string $key, DateTimeImmutable $availableAt, array $envelope): bool {
+            $q = $this->schema->createQuery();
+            $q->update(ScheduledMessagesTable::NAME, [
+                'availableAt' => $availableAt,
+                'envelope' => $envelope,
+            ])->where($q->eq('key', $key));
+
+            return $q->executeStatement() > 0;
         });
     }
 
@@ -51,35 +79,33 @@ class Scheduler
         $q = $this->schema->createQuery()
             ->insert(SchedulerTriggersTable::NAME, ['delayUntil' => $delayUntil]);
 
-        $rowsAffected = $this->schema->onConflictDoNothing($q, ['delayUntil']);
-
-        return $rowsAffected === 1;
+        return $this->schema->onConflictDoNothing($q, ['delayUntil']) > 0;
     }
 
-    private function scheduleMessage(string $key, DateTimeImmutable $availableAt, Envelope $envelope, bool $onConflictUpdate): bool
+    public function unschedule(string $key): bool
     {
-        $envelope = $this->serializer->encode($envelope);
-
-        $insert = $this->schema->createQuery()->insert(
-            ScheduledMessagesTable::NAME,
-            [
-                'key' => $key,
-                'availableAt' => $availableAt,
-                'envelope' => $envelope,
-            ],
+        $q = $this->schema->createQuery();
+        $q->delete(ScheduledMessagesTable::NAME)->where(
+            $q->eq('key', $key),
         );
 
-        if ($onConflictUpdate) {
-            $this->schema->onConflictDoUpdate(
-                $insert,
-                conflict: ['key'],
-                update: ['availableAt' => $availableAt, 'envelope' => $envelope],
-                expectedRowNum: 1,
-            );
+        return $q->executeStatement() > 0;
+    }
 
-            return true;
+    private function schedule(string $key, DateTimeImmutable $availableAt, object $message, array $stamps, callable $scheduleFn): bool
+    {
+        $envelope = Envelope::wrap($message, $stamps);
+
+        $availableAt = new DateTimeImmutable("@{$availableAt->getTimestamp()}");
+
+        if (! $scheduleFn($key, $availableAt, $this->serializer->encode($envelope))) {
+            return false;
         }
 
-        return 1 === $this->schema->onConflictDoNothing($insert, conflict: ['key']);
+        if ($this->dispatchTrigger($availableAt)) {
+            $this->messageBus->dispatch(new SchedulerTrigger(), [DelayStamp::delayUntil($availableAt)]);
+        }
+
+        return true;
     }
 }
