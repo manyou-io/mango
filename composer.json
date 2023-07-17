@@ -14,7 +14,8 @@
         "doctrine/migrations": "^3.2",
         "psr/log": "^2.0 || ^3.0",
         "monolog/monolog": "^3.0",
-        "symfony/messenger": "^6.3"
+        "symfony/messenger": "^6.3",
+        "symfony/scheduler": "^6.3"
     },
     "require-dev": {
         "symfony/http-kernel": "^6.3",

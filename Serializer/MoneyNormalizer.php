@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Manyou\Mango\Serializer;
 
+use Error;
 use Money\Currency;
 use Money\Money;
 use Symfony\Component\Serializer\Exception\NotNormalizableValueException;
@@ -18,11 +19,11 @@ class MoneyNormalizer implements NormalizerInterface, DenormalizerInterface
             return $data;
         }
 
-        if (!isset($data['amount'], $data['currency'])) {
-            return new NotNormalizableValueException('Money objects should have "amount" and "currency" set.');
+        try {
+            return new Money($data['amount'], new Currency($data['currency']));
+        } catch (Error $e) {
+            throw new NotNormalizableValueException($e->getMessage(), $e->getCode(), $e);
         }
-
-        return new Money($data['amount'], new Currency($data['currency']));
     }
 
     public function supportsDenormalization(mixed $data, string $type, ?string $format = null, array $context = []): bool
@@ -45,8 +46,6 @@ class MoneyNormalizer implements NormalizerInterface, DenormalizerInterface
 
     public function getSupportedTypes(?string $format): array
     {
-        return [
-            Money::class => true,
-        ];
+        return [Money::class => true];
     }
 }

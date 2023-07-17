@@ -9,10 +9,12 @@ use Manyou\Mango\Doctrine\SchemaProvider;
 use Manyou\Mango\Scheduler\Doctrine\Table\ScheduledMessagesTable;
 use Manyou\Mango\Scheduler\Doctrine\Table\SchedulerTriggersTable;
 use Manyou\Mango\Scheduler\Message\SchedulerTrigger;
+use Psr\Clock\ClockInterface;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\DelayStamp;
 use Symfony\Component\Messenger\Transport\Serialization\SerializerInterface;
+use Symfony\Component\Scheduler\RecurringMessage;
 
 class Scheduler
 {
@@ -20,12 +22,20 @@ class Scheduler
         private SchemaProvider $schema,
         private MessageBusInterface $messageBus,
         private SerializerInterface $serializer,
+        private ClockInterface $clock,
     ) {
     }
 
-    public function upsert(string $key, DateTimeImmutable $availableAt, object $message, array $stamps = []): bool
+    public function recurring(RecurringMessage $recurringMessage, ?string $key = null): void
     {
-        return $this->schedule($key, $availableAt, $message, $stamps, function (string $key, DateTimeImmutable $availableAt, array $envelope): bool {
+        $key ??= $recurringMessage->getId();
+        $now   = $this->clock->now();
+        $this->upsert($key, $recurringMessage->getTrigger()->getNextRunDate($now), $recurringMessage->getMessage());
+    }
+
+    public function upsert(string $key, DateTimeImmutable $availableAt, object $message): void
+    {
+        $this->schedule($key, $availableAt, $message, function (string $key, DateTimeImmutable $availableAt, array $envelope): void {
             $this->schema->onConflictDoUpdate(
                 $this->schema->createQuery()->insert(
                     ScheduledMessagesTable::NAME,
@@ -39,14 +49,12 @@ class Scheduler
                 update: ['availableAt' => $availableAt, 'envelope' => $envelope],
                 expectedRowNum: 1,
             );
-
-            return true;
         });
     }
 
-    public function insert(string $key, DateTimeImmutable $availableAt, object $message, array $stamps = []): bool
+    public function insert(string $key, DateTimeImmutable $availableAt, object $message): bool
     {
-        return $this->schedule($key, $availableAt, $message, $stamps, function (string $key, DateTimeImmutable $availableAt, array $envelope): bool {
+        return $this->schedule($key, $availableAt, $message, function (string $key, DateTimeImmutable $availableAt, array $envelope): bool {
             return 0 < $this->schema->onConflictDoNothing(
                 $this->schema->createQuery()->insert(
                     ScheduledMessagesTable::NAME,
@@ -61,9 +69,9 @@ class Scheduler
         });
     }
 
-    public function update(string $key, DateTimeImmutable $availableAt, object $message, array $stamps = []): bool
+    public function update(string $key, DateTimeImmutable $availableAt, object $message): bool
     {
-        return $this->schedule($key, $availableAt, $message, $stamps, function (string $key, DateTimeImmutable $availableAt, array $envelope): bool {
+        return $this->schedule($key, $availableAt, $message, function (string $key, DateTimeImmutable $availableAt, array $envelope): bool {
             $q = $this->schema->createQuery();
             $q->update(ScheduledMessagesTable::NAME, [
                 'availableAt' => $availableAt,
@@ -92,9 +100,9 @@ class Scheduler
         return $q->executeStatement() > 0;
     }
 
-    private function schedule(string $key, DateTimeImmutable $availableAt, object $message, array $stamps, callable $scheduleFn): bool
+    private function schedule(string $key, DateTimeImmutable $availableAt, object $message, callable $scheduleFn): bool
     {
-        $envelope = Envelope::wrap($message, $stamps);
+        $envelope = Envelope::wrap($message);
 
         $availableAt = new DateTimeImmutable("@{$availableAt->getTimestamp()}");
 
@@ -102,9 +110,11 @@ class Scheduler
             return false;
         }
 
-        if ($this->dispatchTrigger($availableAt)) {
-            $this->messageBus->dispatch(new SchedulerTrigger(), [DelayStamp::delayUntil($availableAt)]);
-        }
+        $this->schema->transactional(function () use ($availableAt): void {
+            if ($this->dispatchTrigger($availableAt)) {
+                $this->messageBus->dispatch(new SchedulerTrigger(), [DelayStamp::delayUntil($availableAt)]);
+            }
+        });
 
         return true;
     }
