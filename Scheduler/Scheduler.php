@@ -11,19 +11,24 @@ use Manyou\Mango\Scheduler\Doctrine\Table\SchedulerTriggersTable;
 use Manyou\Mango\Scheduler\Message\SchedulerTrigger;
 use Manyou\Mango\Scheduler\Messenger\RecurringScheduleStamp;
 use Psr\Clock\ClockInterface;
+use Psr\Log\LoggerAwareInterface;
+use Psr\Log\LoggerAwareTrait;
+use Symfony\Component\Clock\Clock;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\DelayStamp;
 use Symfony\Component\Messenger\Transport\Serialization\SerializerInterface;
 use Symfony\Component\Scheduler\RecurringMessage;
 
-class Scheduler
+class Scheduler implements LoggerAwareInterface
 {
+    use LoggerAwareTrait;
+
     public function __construct(
         private SchemaProvider $schema,
         private MessageBusInterface $messageBus,
         private SerializerInterface $serializer,
-        private ClockInterface $clock,
+        private ClockInterface $clock = new Clock(),
     ) {
     }
 
@@ -110,11 +115,17 @@ class Scheduler
         $availableAt = new DateTimeImmutable("@{$availableAt->getTimestamp()}");
 
         if (! $scheduleFn($key, $availableAt, $this->serializer->encode($envelope))) {
+            $this->logger?->notice('Scheduler: schedule was not updated or inserted', [
+                'key' => $key,
+                'availableAt' => $availableAt,
+            ]);
+
             return false;
         }
 
         $this->schema->transactional(function () use ($availableAt): void {
             if ($this->dispatchTrigger($availableAt)) {
+                $this->logger?->info('Scheduler: dispatching trigger', ['availableAt' => $availableAt]);
                 $this->messageBus->dispatch(new SchedulerTrigger(), [DelayStamp::delayUntil($availableAt)]);
             }
         });
