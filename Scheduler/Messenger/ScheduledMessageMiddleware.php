@@ -25,27 +25,26 @@ class ScheduledMessageMiddleware implements MiddlewareInterface
     {
         /** @var ScheduledMessageStamp|null */
         $stamp = $envelope->last(ScheduledMessageStamp::class);
-
-        if (null !== $stamp) {
-            return $this->schema->transactional(function () use ($envelope, $stack, $stamp) {
-                $q = $this->schema->createQuery();
-                $q->update([ScheduledMessagesTable::NAME, 's'], ['lastDispatchedAt' => $this->clock->now()])->where(
-                    $q->eq('key', $stamp->getKey()),
-                    $q->or(
-                        $q->gt('availableAt', ['s', 'lastDispatchedAt']),
-                        $q->isNull('lastDispatchedAt'),
-                    ),
-                );
-                if ($q->executeStatement() !== 1) {
-                    $this->logger->warning('Scheduled message was already dispatched.', ['key' => $stamp->getKey()]);
-
-                    return $envelope;
-                }
-
-                return $stack->next()->handle($envelope->withoutStampsOfType(ScheduledMessageStamp::class), $stack);
-            });
+        if (null === $stamp) {
+            return $stack->next()->handle($envelope, $stack);
         }
 
-        return $stack->next()->handle($envelope, $stack);
+        return $this->schema->transactional(function () use ($envelope, $stack, $stamp) {
+            $q = $this->schema->createQuery();
+            $q->update([ScheduledMessagesTable::NAME, 's'], ['lastDispatchedAt' => $this->clock->now()])->where(
+                $q->eq('key', $stamp->getKey()),
+                $q->or(
+                    $q->gt('availableAt', ['s', 'lastDispatchedAt']),
+                    $q->isNull('lastDispatchedAt'),
+                ),
+            );
+            if ($q->executeStatement() !== 1) {
+                $this->logger->warning('Scheduled message was already dispatched.', ['key' => $stamp->getKey()]);
+
+                return $envelope;
+            }
+
+            return $stack->next()->handle($envelope->withoutStampsOfType(ScheduledMessageStamp::class), $stack);
+        });
     }
 }

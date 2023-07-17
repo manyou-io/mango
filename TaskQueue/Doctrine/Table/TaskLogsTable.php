@@ -22,8 +22,8 @@ class TaskLogsTable implements TableProvider
         $table->addColumn('task_id', 'ulid');
         $table->addColumn('level', LogLevelType::NAME);
         $table->addColumn('message', Types::TEXT);
-        $table->addColumn('context', ObjectJsonType::NAME);
-        $table->addColumn('extra', ObjectJsonType::NAME);
+        $table->addColumn('context', ObjectJsonType::NAME)->setPlatformOptions(['jsonb' => true]);
+        $table->addColumn('extra', ObjectJsonType::NAME)->setPlatformOptions(['jsonb' => true]);
         $table->setPrimaryKey(['id']);
         $table->addForeignKeyConstraint(TasksTable::NAME, ['task_id'], ['id']);
 
