@@ -35,11 +35,11 @@ class Table
         return $this->columnMap[$name] ?? $this->table->getColumn($name);
     }
 
-    public function addColumn(string $name, string $typeName, array $options = [], ?string $alias = null): self
+    public function addColumn(string $name, string $typeName, array $options = [], ?string $alias = null): Column
     {
-        $this->columnMap[$alias ?? $name] = $this->table->addColumn($name, $typeName, $options);
+        $this->columnMap[$alias ?? $name] = $column = $this->table->addColumn($name, $typeName, $options);
 
-        return $this;
+        return $column;
     }
 
     public function getColumns(): array
