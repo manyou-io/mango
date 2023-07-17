@@ -17,6 +17,7 @@ class SchedulerTriggersTable implements TableProvider
     {
         $table = new Table($schema, self::NAME);
         $table->addColumn('delay_until', Types::DATETIME_IMMUTABLE, alias: 'delayUntil');
+        $table->setPrimaryKey(['delay_until']);
 
         return $table;
     }
