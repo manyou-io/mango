@@ -28,9 +28,11 @@ class Scheduler
 
     public function recurring(RecurringMessage $recurringMessage, ?string $key = null): void
     {
-        $key ??= $recurringMessage->getId();
-        $now   = $this->clock->now();
-        $this->upsert($key, $recurringMessage->getTrigger()->getNextRunDate($now), $recurringMessage->getMessage());
+        $this->upsert(
+            $key ??= $recurringMessage->getId(),
+            $recurringMessage->getTrigger()->getNextRunDate($this->clock->now()),
+            $recurringMessage->getMessage(),
+        );
     }
 
     public function upsert(string $key, DateTimeImmutable $availableAt, object $message): void
