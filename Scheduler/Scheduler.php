@@ -9,6 +9,7 @@ use Manyou\Mango\Doctrine\SchemaProvider;
 use Manyou\Mango\Scheduler\Doctrine\Table\ScheduledMessagesTable;
 use Manyou\Mango\Scheduler\Doctrine\Table\SchedulerTriggersTable;
 use Manyou\Mango\Scheduler\Message\SchedulerTrigger;
+use Manyou\Mango\Scheduler\Messenger\RecurringScheduleStamp;
 use Psr\Clock\ClockInterface;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -31,7 +32,7 @@ class Scheduler
         $this->upsert(
             $key ??= $recurringMessage->getId(),
             $recurringMessage->getTrigger()->getNextRunDate($this->clock->now()),
-            $recurringMessage->getMessage(),
+            Envelope::wrap($recurringMessage->getMessage(), [new RecurringScheduleStamp($key, $recurringMessage)]),
         );
     }
 
