@@ -21,7 +21,7 @@ class ScheduledMessagesTable implements TableProvider
         $table->addColumn('key', Types::STRING);
         $table->addColumn('envelope', ObjectJsonType::NAME)->setPlatformOptions(['jsonb' => true]);
         $table->addColumn('available_at', Types::DATETIME_IMMUTABLE, alias: 'availableAt');
-        $table->addColumn('last_dispatched_at', UsDateTimeImmutableType::NAME, alias: 'lastDispatchedAt');
+        $table->addColumn('last_dispatched_at', UsDateTimeImmutableType::NAME, ['notnull' => false], alias: 'lastDispatchedAt');
         $table->setPrimaryKey(['key']);
         $table->addIndex(['available_at']);
 
