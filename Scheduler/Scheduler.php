@@ -37,8 +37,8 @@ class Scheduler
 
     public function upsert(string $key, DateTimeImmutable $availableAt, object $message): void
     {
-        $this->schedule($key, $availableAt, $message, function (string $key, DateTimeImmutable $availableAt, array $envelope): void {
-            $this->schema->onConflictDoUpdate(
+        $this->schedule($key, $availableAt, $message, function (string $key, DateTimeImmutable $availableAt, array $envelope): bool {
+            return 0 < $this->schema->onConflictDoUpdate(
                 $this->schema->createQuery()->insert(
                     ScheduledMessagesTable::NAME,
                     [
