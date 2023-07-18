@@ -28,7 +28,7 @@ class TaskQueueMiddware implements MiddlewareInterface
 
     private function onSchedule(Envelope $envelope, StackInterface $stack, ScheduleTaskStamp $stamp): Envelope
     {
-        return $this->schema->getConnection()->transactional(function () use ($envelope, $stack, $stamp) {
+        return $this->schema->transactional(function () use ($envelope, $stack, $stamp) {
             $this->schema->createQuery()->insert(
                 TasksTable::NAME,
                 ['id' => $id = new Ulid(), 'status' => TaskStatus::QUEUEING],
@@ -46,7 +46,7 @@ class TaskQueueMiddware implements MiddlewareInterface
 
     private function onRetry(Envelope $envelope, StackInterface $stack, TaskStamp $stamp): Envelope
     {
-        return $this->schema->getConnection()->transactional(function () use ($envelope, $stack, $stamp) {
+        return $this->schema->transactional(function () use ($envelope, $stack, $stamp) {
             $q = $this->schema->createQuery();
 
             $rowNum = $q
