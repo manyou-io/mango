@@ -41,7 +41,8 @@ return static function (ContainerConfigurator $containerConfigurator): void {
         ->arg('$removeUsedContextFields', true);
 
     $services->set('doctrine.dbal.logging_connection.configuration')
-        ->parent('doctrine.dbal.connection.configuration');
+        ->parent('doctrine.dbal.connection.configuration')
+        ->call('setSchemaManagerFactory', [service('doctrine.dbal.default_schema_manager_factory')]);
 
     $services->set('doctrine.dbal.logging_connection.event_manager')
         ->parent('doctrine.dbal.connection.event_manager');
