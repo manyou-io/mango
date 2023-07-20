@@ -654,6 +654,18 @@ class Query
         return $this->convertResultToPHPValue('c0', $values[0]);
     }
 
+    
+    public function fetchOneWithDefault(mixed $value): mixed
+    {
+        $values = $this->getQueryResult()->fetchFirstColumn();
+
+        if ($values === []) {
+            return $value;
+        }
+
+        return $this->convertResultToPHPValue('c0', $values[0]);
+    }
+
     public function getBuilder(): QueryBuilder
     {
         return $this->builder;
