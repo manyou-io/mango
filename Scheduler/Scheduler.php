@@ -20,6 +20,8 @@ use Symfony\Component\Messenger\Stamp\DelayStamp;
 use Symfony\Component\Messenger\Transport\Serialization\SerializerInterface;
 use Symfony\Component\Scheduler\RecurringMessage;
 
+use function round;
+
 class Scheduler implements LoggerAwareInterface
 {
     use LoggerAwareTrait;
@@ -34,9 +36,21 @@ class Scheduler implements LoggerAwareInterface
 
     public function recurring(RecurringMessage $recurringMessage, ?string $key = null): void
     {
+        $now         = $this->clock->now();
+        $nextRunDate = $recurringMessage->getTrigger()->getNextRunDate($now);
+        $key       ??= $recurringMessage->getId();
+
+        if (! $nextRunDate) {
+            $this->logger->info('Scheduler: no next recurring date', ['key' => $key, 'now' => $now]);
+
+            return;
+        }
+
+        $this->logger->info('Scheduler: recurring', ['key' => $key, 'nextRunDate' => $nextRunDate, 'now' => $now]);
+
         $this->upsert(
-            $key ??= $recurringMessage->getId(),
-            $recurringMessage->getTrigger()->getNextRunDate($this->clock->now()),
+            $key,
+            $nextRunDate,
             Envelope::wrap($recurringMessage->getMessage(), [new RecurringScheduleStamp($key, $recurringMessage)]),
         );
     }
@@ -112,7 +126,7 @@ class Scheduler implements LoggerAwareInterface
     {
         $envelope = Envelope::wrap($message);
 
-        $availableAt = new DateTimeImmutable("@{$availableAt->getTimestamp()}");
+        $availableAt = $this->roundToSecond($availableAt);
 
         if (! $scheduleFn($key, $availableAt, $this->serializer->encode($envelope))) {
             $this->logger?->notice('Scheduler: schedule was not updated or inserted', [
@@ -131,5 +145,12 @@ class Scheduler implements LoggerAwareInterface
         });
 
         return true;
+    }
+
+    private function roundToSecond(DateTimeImmutable $date): DateTimeImmutable
+    {
+        $ts = $date->getTimestamp() + (int) round($date->format('u') / 1e6);
+
+        return new DateTimeImmutable("@{$ts}");
     }
 }
