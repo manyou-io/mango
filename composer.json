@@ -20,7 +20,6 @@
     "require-dev": {
         "symfony/http-kernel": "^6.3",
         "symfony/yaml": "^6.3",
-        "api-platform/core": "^3.0",
         "moneyphp/money": "^4.1",
         "ext-intl": "*",
         "spomky-labs/lexik-jose-bridge": "^4.0",
