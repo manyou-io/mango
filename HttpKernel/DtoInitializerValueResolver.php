@@ -45,9 +45,11 @@ class DtoInitializerValueResolver implements ValueResolverInterface
 
         $objectToPopulate = $initializer(...$arguments);
 
+        $serializationContext = $request->attributes->get('denormalization_context', []) + [AbstractObjectNormalizer::OBJECT_TO_POPULATE => $objectToPopulate];
+
         $attribute = null === $objectToPopulate ? $attribute : new MapRequestPayload(
             $attribute->acceptFormat,
-            $attribute->serializationContext + [AbstractObjectNormalizer::OBJECT_TO_POPULATE => $objectToPopulate],
+            $attribute->serializationContext + $serializationContext,
             $attribute->validationGroups,
         );
 
