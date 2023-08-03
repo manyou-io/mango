@@ -145,7 +145,10 @@ class SchemaProvider implements SchemaProviderInterface
         $types[] = $update->getParameterTypes();
         $types[] = $select->getParameterTypes();
 
-        $rowNum = $this->connection->executeStatement($sql, array_merge(...$params), array_merge(...$types));
+        $params = array_merge(...$params);
+        $types  = array_merge(...$types);
+
+        $rowNum = $this->connection->executeStatement($sql, $params, $types);
 
         if ($rowNum !== ($expectedRowNum ?? $rowNum)) {
             throw RowNumUnmatched::create($expectedRowNum, $rowNum);
