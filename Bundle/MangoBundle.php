@@ -20,7 +20,6 @@ use Manyou\Mango\Doctrine\Type\UsDateTimeImmutableType;
 use Manyou\Mango\Doctrine\Type\UuidType;
 use Manyou\Mango\HttpKernel\AsDtoInitializer;
 use Manyou\Mango\Scheduler\Messenger\RecurringScheduleMiddleware;
-use Manyou\Mango\Scheduler\Messenger\ScheduledMessageMiddleware;
 use Manyou\Mango\TaskQueue\Doctrine\Type\TaskStatusType;
 use Manyou\Mango\TaskQueue\Messenger\Middleware\TaskQueueMiddware;
 use ReflectionClass;
@@ -63,13 +62,8 @@ class MangoBundle extends AbstractBundle
         );
 
         $container->addCompilerPass(
-            new MessengerMiddlewarePass(['id' => ScheduledMessageMiddleware::class]),
-            priority: 2,
-        );
-
-        $container->addCompilerPass(
             new MessengerMiddlewarePass(['id' => RecurringScheduleMiddleware::class]),
-            priority: 3,
+            priority: 2,
         );
 
         $container->addCompilerPass(

@@ -6,6 +6,7 @@ namespace Manyou\Mango\Doctrine\Type;
 
 use BackedEnum;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
+use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
 use Doctrine\DBAL\Types\ConversionException;
 use LogicException;
 
@@ -18,6 +19,8 @@ trait BackedEnumType
     use EnumType {
         convertToDatabaseValue as doConvertToDatabaseValue;
     }
+
+    abstract private function getName(): string;
 
     abstract private function getEnumClass(): string;
 
@@ -55,5 +58,14 @@ trait BackedEnumType
         }
 
         return $this->getEnumClass()::from($value);
+    }
+
+    public function getMappedDatabaseTypes(AbstractPlatform $platform): array
+    {
+        if ($platform instanceof PostgreSQLPlatform) {
+            return [$this->getName()];
+        }
+
+        return [];
     }
 }

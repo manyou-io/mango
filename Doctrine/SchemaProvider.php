@@ -47,18 +47,26 @@ class SchemaProvider implements SchemaProviderInterface
     public function transactional(Closure $func)
     {
         $this->connection->beginTransaction();
+        $commit = true;
+
         try {
-            $res = $func($this);
-            $this->connection->commit();
+            $res = $func($this, $commit);
+            if ($commit) {
+                $this->connection->commit();
+            }
 
             return $res;
         } catch (Throwable $e) {
-            try {
-                $this->connection->rollBack();
-            } catch (PDOException) {
-            }
+            $commit = false;
 
             throw $e;
+        } finally {
+            if (! $commit) {
+                try {
+                    $this->connection->rollBack();
+                } catch (PDOException) {
+                }
+            }
         }
     }
 
