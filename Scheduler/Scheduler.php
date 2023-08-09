@@ -29,8 +29,10 @@ class Scheduler implements LoggerAwareInterface
 
     public function __construct(
         private MessageBusInterface $messageBus,
-        #[Autowire(service: 'messenger.transport.scheduler')]
+        #[Autowire(service: 'mango.scheduler.transport')]
         private DoctrineSchedulerTransport $transport,
+        #[Autowire(param: 'mango.scheduler.transport')]
+        private string $transportName,
         private ClockInterface $clock = new Clock(),
     ) {
     }
@@ -61,7 +63,7 @@ class Scheduler implements LoggerAwareInterface
         $envelope = $this->messageBus->dispatch($message, [
             DelayStamp::delayUntil($this->roundToSecond($availableAt)),
             ScheduleMessageStamp::upsert($key),
-            new TransportNamesStamp(['scheduler']),
+            new TransportNamesStamp([$this->transportName]),
         ]);
 
         return null !== $envelope->last(SentStamp::class);
@@ -72,7 +74,7 @@ class Scheduler implements LoggerAwareInterface
         $envelope = $this->messageBus->dispatch($message, [
             DelayStamp::delayUntil($this->roundToSecond($availableAt)),
             ScheduleMessageStamp::insert($key),
-            new TransportNamesStamp(['scheduler']),
+            new TransportNamesStamp([$this->transportName]),
         ]);
 
         return null !== $envelope->last(SentStamp::class);
@@ -83,7 +85,7 @@ class Scheduler implements LoggerAwareInterface
         $envelope = $this->messageBus->dispatch($message, [
             DelayStamp::delayUntil($this->roundToSecond($availableAt)),
             ScheduleMessageStamp::update($key),
-            new TransportNamesStamp(['scheduler']),
+            new TransportNamesStamp([$this->transportName]),
         ]);
 
         return null !== $envelope->last(SentStamp::class);
