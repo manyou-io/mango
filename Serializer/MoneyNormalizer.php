@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Manyou\Mango\Serializer;
 
-use Error;
+use ErrorException;
 use Money\Currency;
 use Money\Money;
 use Symfony\Component\Serializer\Exception\NotNormalizableValueException;
@@ -21,8 +21,8 @@ class MoneyNormalizer implements NormalizerInterface, DenormalizerInterface
 
         try {
             return new Money($data['amount'], new Currency($data['currency']));
-        } catch (Error $e) {
-            throw new NotNormalizableValueException($e->getMessage(), $e->getCode(), $e);
+        } catch (ErrorException $e) {
+            throw NotNormalizableValueException::createForUnexpectedDataType($e->getMessage(), $data, ['{amount: int|string, currency: string}']);
         }
     }
 
