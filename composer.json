@@ -22,7 +22,6 @@
         "symfony/yaml": "^6.3",
         "moneyphp/money": "^4.1",
         "ext-intl": "*",
-        "spomky-labs/lexik-jose-bridge": "^4.0",
         "symfony/lock": "^6.3",
         "symfony/cache": "^6.3",
         "symfony/serializer": "^6.3",
