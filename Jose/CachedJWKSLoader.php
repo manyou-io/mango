@@ -18,7 +18,7 @@ class CachedJWKSLoader implements JWKSLoader
     public function __construct(
         private JKUFactory $jkuFactory,
         private CacheInterface $cache,
-        #[Autowire('%env(SL_JOSE_BRIDGE_JWKS_URI)%')]
+        #[Autowire('%env(OIDC_JWKS_URI)%')]
         private string $url,
         private array $header = [],
         private int|DateInterval|null $expiresAfter = 120,
