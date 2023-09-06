@@ -190,9 +190,11 @@ class DoctrineTest extends KernelTestCase
         ], $q->fetchAllAssociative());
 
         $q = $schema->createQuery();
-        $q->selectFrom([PostsTable::NAME, 'p'], 'title')
-            ->joinOn([GroupTable::NAME, 'g'], 'id', 'group_id', null)
-            ->where($q->eq('id', 2));
+        $q->from(PostsTable::NAME, 'p')
+            ->select('title')
+            ->where(title: 'post 2')
+            ->addInnerJoin([GroupTable::NAME, 'g'], ['group_id', 'id'])
+            ->where(id: 2);
         $this->assertEqualsCanonicalizing([
             [
                 'p' => ['title' => 'post 2'],
