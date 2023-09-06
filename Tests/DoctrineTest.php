@@ -115,8 +115,8 @@ class DoctrineTest extends KernelTestCase
         ], $q->fetchAllAssociative());
 
         $q = $schema->createQuery();
-        $q->selectFrom(GroupTable::NAME)
-            ->where($q->eq('id', 6), $q->eq('orderString', 'bulk alias bar'));
+        $q->from(GroupTable::NAME)->select()
+            ->where(id: 6, orderString: 'bulk alias bar');
         $this->assertEqualsCanonicalizing([
             [GroupTable::NAME => ['id' => 6, 'orderString' => 'bulk alias bar']],
         ], $q->fetchAllAssociative());
