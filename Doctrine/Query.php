@@ -39,7 +39,6 @@ use function sprintf;
 use function strpos;
 
 /**
- * @method $this where($predicates)
  * @method $this andWhere($where)
  * @method $this orWhere($where)
  * @method $this setMaxResults(int|null $maxResults)
@@ -897,13 +896,30 @@ class Query
         return $returnValue === $this->builder ? $this : $returnValue;
     }
 
-    public function and(string|CompositeExpression $expression, string|CompositeExpression ...$expressions): CompositeExpression
+    public function and(string|CompositeExpression ...$expressions): CompositeExpression
     {
-        return CompositeExpression::and($expression, ...$expressions);
+        return CompositeExpression::and(...$expressions);
     }
 
-    public function or(string|CompositeExpression $expression, string|CompositeExpression ...$expressions): CompositeExpression
+    public function or(string|CompositeExpression ...$expressions): CompositeExpression
     {
-        return CompositeExpression::or($expression, ...$expressions);
+        return CompositeExpression::or(...$expressions);
+    }
+
+    public function where(mixed ...$expressions): self
+    {
+        $where = [];
+        foreach ($expressions as $matchColumn => $expression) {
+            if (is_string($matchColumn)) {
+                $where[] = $this->eq($matchColumn, $expression);
+                continue;
+            }
+
+            $where[] = $expression;
+        }
+
+        $this->builder->andWhere(...$where);
+
+        return $this;
     }
 }
