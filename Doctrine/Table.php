@@ -37,9 +37,7 @@ class Table
 
     public function addColumn(string $name, string $typeName, array $options = [], ?string $alias = null): Column
     {
-        $this->columnMap[$alias ?? $name] = $column = $this->table->addColumn($name, $typeName, $options);
-
-        return $column;
+        return $this->columnMap[$alias ?? $name] = $this->table->addColumn($name, $typeName, $options);
     }
 
     public function getColumns(): array

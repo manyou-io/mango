@@ -235,9 +235,7 @@ class Query
 
     public function selectFrom(string|array $from, ?string ...$selects): self
     {
-        $this->addSelects($this->addFrom([$this->builder, 'from'], $from), $selects);
-
-        return $this;
+        return $this->addFrom([$this->builder, 'from'], $from)->select(...$selects);
     }
 
     private function addSelectTable(string $alias, Table $table): void
@@ -250,8 +248,28 @@ class Query
             : $alias;
     }
 
-    private function addJoin(callable $builderCall, string $fromAlias, string|array $join, string|Closure|array $on): string
+    public function addInnerJoin(string|array $join, string|Closure|array $on, ?string $fromAlias = null): self
     {
+        $this->addJoin('join', $fromAlias, $join, $on);
+
+        return $this;
+    }
+
+    public function addLeftJoin(string|array $join, string|Closure|array $on, ?string $fromAlias = null): self
+    {
+        $this->addJoin('leftJoin', $fromAlias, $join, $on);
+
+        return $this;
+    }
+
+    private function addJoin(string|callable $builderCall, ?string $fromAlias, string|array $join, string|Closure|array $on): string
+    {
+        $fromAlias ??= $this->fromAlias;
+
+        if (is_string($builderCall)) {
+            $builderCall = [$this->builder, $builderCall];
+        }
+
         [$joinTable, $joinAlias] = is_string($join) ? [$join, $join] : $join;
 
         $this->addSelectTable($joinAlias, $table = $this->schema->getTable($joinTable));
@@ -276,7 +294,7 @@ class Query
 
     public function join(string $fromAlias, string|array $join, string|Closure|array $on, ?string ...$selects): self
     {
-        $this->addSelects($this->addJoin([$this->builder, 'join'], $fromAlias, $join, $on), $selects);
+        $this->addSelects($selects, $this->addJoin([$this->builder, 'join'], $fromAlias, $join, $on));
 
         return $this;
     }
@@ -288,7 +306,7 @@ class Query
 
     public function leftJoin(string $fromAlias, string|array $join, string|Closure|array $on, ?string ...$selects): self
     {
-        $this->addSelects($this->addJoin([$this->builder, 'leftJoin'], $fromAlias, $join, $on), $selects);
+        $this->addSelects($selects, $this->addJoin([$this->builder, 'leftJoin'], $fromAlias, $join, $on));
 
         return $this;
     }
@@ -300,7 +318,7 @@ class Query
 
     public function update(string|array $from, array $data = []): self
     {
-        $fromAlias = $this->addFrom([$this->builder, 'update'], $from);
+        $this->addFrom([$this->builder, 'update'], $from);
 
         foreach ($data as $column => $value) {
             $this->builder->set(...$this->bindUpdate($column, $value));
@@ -309,11 +327,14 @@ class Query
         return $this;
     }
 
-    public function delete(string|array $from): self
+    public function delete(string ...$from): self
     {
-        $this->addFrom([$this->builder, 'delete'], $from);
+        return $this->addFrom([$this->builder, 'delete'], $from);
+    }
 
-        return $this;
+    public function from(string ...$from): self
+    {
+        return $this->addFrom([$this->builder, 'from'], $from);
     }
 
     public function patch(string|array $from, array $data = []): ?self
@@ -327,9 +348,10 @@ class Query
         return $data === [] ? null : $this->update($from, $data);
     }
 
-    /** @return string The from alias */
-    private function addFrom(callable $builderCall, string|array $from): string
+    private function addFrom(callable $builderCall, string|array $from): self
     {
+        $from = is_array($from) && 1 === count($from) ? $from[0] : $from;
+
         [$fromTable, $fromAlias] = is_string($from) ? [$from, null] : $from;
 
         $table = $this->schema->getTable($fromTable);
@@ -339,7 +361,9 @@ class Query
 
         $this->addSelectTable($fromAlias, $table);
 
-        return $this->fromAlias = $fromAlias;
+        $this->fromAlias = $fromAlias;
+
+        return $this;
     }
 
     /** @return Column[] */
@@ -362,10 +386,12 @@ class Query
         }
     }
 
-    private function addSelects(string $tableAlias, array $selects): void
+    public function select(string ...$selects): self
     {
+        $tableAlias = $this->lastTableAlias;
+
         if (array_key_exists(0, $selects) && $selects[0] === null) {
-            return;
+            return $this;
         }
 
         $columns = $this->getSelectColumns($this->selectTableMap[$tableAlias], $selects);
@@ -390,6 +416,8 @@ class Query
                 )
                 . ' ' . $this->platform->quoteSingleIdentifier($resultAlias);
         }
+
+        return $this;
     }
 
     public function selectRaw(array $alias, string $type, string|array ...$parts): self
@@ -416,7 +444,6 @@ class Query
         $this->resultTypeMap[$resultAlias]        = $type;
         $this->resultTableAliasMap[$resultAlias]  = $tableAlias;
         $this->resultColumnAliasMap[$resultAlias] = $alias;
-
 
         $this->selects[] =
             $type->convertToPHPValueSQL($sql, $this->platform) . ' '
@@ -654,7 +681,6 @@ class Query
         return $this->convertResultToPHPValue('c0', $values[0]);
     }
 
-    
     public function fetchOneWithDefault(mixed $value): mixed
     {
         $values = $this->getQueryResult()->fetchFirstColumn();
