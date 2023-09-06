@@ -294,7 +294,7 @@ class Query
 
     public function join(string $fromAlias, string|array $join, string|Closure|array $on, ?string ...$selects): self
     {
-        $this->addSelects($selects, $this->addJoin([$this->builder, 'join'], $fromAlias, $join, $on));
+        $this->addInnerJoin($join, $on, $fromAlias)->select(...$selects);
 
         return $this;
     }
@@ -306,7 +306,7 @@ class Query
 
     public function leftJoin(string $fromAlias, string|array $join, string|Closure|array $on, ?string ...$selects): self
     {
-        $this->addSelects($selects, $this->addJoin([$this->builder, 'leftJoin'], $fromAlias, $join, $on));
+        $this->addLeftJoin($join, $on, $fromAlias)->select(...$selects);
 
         return $this;
     }
@@ -386,7 +386,7 @@ class Query
         }
     }
 
-    public function select(string ...$selects): self
+    public function select(?string ...$selects): self
     {
         $tableAlias = $this->lastTableAlias;
 
