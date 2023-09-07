@@ -2,12 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Manyou\Mango\Doctrine;
+namespace Mango\Doctrine;
 
-use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Schema\Column;
-use Doctrine\DBAL\Schema\Schema;
-use Doctrine\DBAL\Schema\Table as DoctrineTable;
+use Doctrine\DBAL\Schema\Table as DBALTable;
+
+use function lcfirst;
+use function preg_replace_callback;
+use function strtoupper;
 
 /**
  * @method $this setPrimaryKey(string[] $columnNames, string|false $indexName = false)
@@ -19,36 +21,41 @@ use Doctrine\DBAL\Schema\Table as DoctrineTable;
  */
 class Table
 {
-    private array $columnMap = [];
-
-    private DoctrineTable $table;
+    private array $columnsByAlias = [];
 
     public function __construct(
-        Schema $schema,
-        public readonly string $name,
+        private DBALTable $table,
     ) {
-        $this->table = $schema->createTable($name);
     }
 
     public function getColumn(string $name): Column
     {
-        return $this->columnMap[$name] ?? $this->table->getColumn($name);
+        return $this->columnsByAlias[$name] ?? $this->table->getColumn($name);
     }
 
-    public function addColumn(string $name, string $typeName, array $options = [], ?string $alias = null): Column
+    public function addColumn($name, $typeName, array $options = [], ?string $alias = null): Column
     {
-        return $this->columnMap[$alias ?? $name] = $this->table->addColumn($name, $typeName, $options);
+        $alias ??= $this->toCamelCase($name);
+
+        return $this->columnsByAlias[$alias] =  $this->table->addColumn($name, $typeName, $options);
     }
 
-    public function getColumns(): array
+    private function toCamelCase(string $name): string
     {
-        return $this->columnMap;
+        $camelCasedName = preg_replace_callback('/(^|_|\.)+(.)/', static fn ($match) => ('.' === $match[1] ? '_' : '') . strtoupper($match[2]), $name);
+
+        return lcfirst($camelCasedName);
     }
 
-    public function __call($name, $arguments)
+    public function getColumnsByAlias(): array
     {
-        $returnValue = $this->table->{$name}(...$arguments);
+        return $this->columnsByAlias;
+    }
 
-        return $returnValue === $this->table ? $this : $returnValue;
+    public function __call($name, $args)
+    {
+        $ret = $this->table->{$name}(...$args);
+
+        return $ret === $this->table ? $this : $ret;
     }
 }

@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Manyou\Mango\TaskQueue\Messenger\Middleware;
+namespace Mango\TaskQueue\Messenger\Middleware;
 
-use Manyou\Mango\Doctrine\SchemaProvider;
-use Manyou\Mango\TaskQueue\Doctrine\Table\TasksTable;
-use Manyou\Mango\TaskQueue\Enum\TaskStatus;
-use Manyou\Mango\TaskQueue\Messenger\Stamp\ScheduleTaskStamp;
-use Manyou\Mango\TaskQueue\Messenger\Stamp\TaskStamp;
-use Manyou\Mango\TaskQueue\Monolog\TaskLogHandler;
+use Mango\Doctrine\SchemaProvider;
+use Mango\TaskQueue\Doctrine\Table\TasksTable;
+use Mango\TaskQueue\Enum\TaskStatus;
+use Mango\TaskQueue\Messenger\Stamp\ScheduleTaskStamp;
+use Mango\TaskQueue\Messenger\Stamp\TaskStamp;
+use Mango\TaskQueue\Monolog\TaskLogHandler;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\Middleware\MiddlewareInterface;

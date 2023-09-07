@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Manyou\Mango\Tests\Doctrine\Type;
+namespace Mango\Tests\Doctrine\Type;
 
 use function is_object;
 use function is_scalar;

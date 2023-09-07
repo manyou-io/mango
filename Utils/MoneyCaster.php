@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Manyou\Mango\Utils;
+namespace Mango\Utils;
 
 use Money\Currencies\ISOCurrencies;
 use Money\Currency;

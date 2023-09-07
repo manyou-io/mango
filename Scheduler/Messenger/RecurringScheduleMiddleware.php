@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Manyou\Mango\Scheduler\Messenger;
+namespace Mango\Scheduler\Messenger;
 
-use Manyou\Mango\Scheduler\Scheduler;
+use Mango\Scheduler\Scheduler;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\Middleware\MiddlewareInterface;
 use Symfony\Component\Messenger\Middleware\StackInterface;

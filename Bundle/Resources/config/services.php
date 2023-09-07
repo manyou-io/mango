@@ -5,14 +5,14 @@ declare(strict_types=1);
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
 use Doctrine\DBAL\Connection;
-use Manyou\Mango\ApiPlatform\SerializerInitializerContextBuilder;
-use Manyou\Mango\Doctrine\Driver\Oci8InitializeSession;
-use Manyou\Mango\Doctrine\SchemaProvider;
-use Manyou\Mango\Serializer\MoneyNormalizer;
-use Manyou\Mango\TaskQueue\Doctrine\Table\TaskLogsTable;
-use Manyou\Mango\TaskQueue\Doctrine\Table\TasksTable;
-use Manyou\Mango\TaskQueue\Messenger\Middleware\TaskQueueMiddware;
-use Manyou\Mango\TaskQueue\Monolog\TaskLogHandler;
+use Mango\ApiPlatform\SerializerInitializerContextBuilder;
+use Mango\Doctrine\Driver\Oci8InitializeSession;
+use Mango\Doctrine\SchemaProvider;
+use Mango\Serializer\MoneyNormalizer;
+use Mango\TaskQueue\Doctrine\Table\TaskLogsTable;
+use Mango\TaskQueue\Doctrine\Table\TasksTable;
+use Mango\TaskQueue\Messenger\Middleware\TaskQueueMiddware;
+use Mango\TaskQueue\Monolog\TaskLogHandler;
 use Monolog\Handler\FingersCrossedHandler;
 use Monolog\Level;
 use Monolog\Processor\PsrLogMessageProcessor;
@@ -27,7 +27,7 @@ return static function (ContainerConfigurator $containerConfigurator): void {
         ->autowire()
         ->autoconfigure();
 
-    $services->load('Manyou\\Mango\\', dirname(__DIR__, 3) . '/')
+    $services->load('Mango\\', dirname(__DIR__, 3) . '/')
         ->exclude(dirname(__DIR__, 3) . '/{Bundle,Tests}');
 
     $services->set(SchemaProvider::class)->public();

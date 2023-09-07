@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Manyou\Mango\Scheduler\Messenger;
+namespace Mango\Scheduler\Messenger;
 
 use Symfony\Component\Messenger\Stamp\NonSendableStampInterface;
 

@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Manyou\Mango\DependencyInjection;
+namespace Mango\DependencyInjection;
 
-use Manyou\Mango\HttpKernel\DtoInitializerValueResolver;
+use Mango\HttpKernel\DtoInitializerValueResolver;
 use ReflectionClass;
 use ReflectionException;
 use ReflectionNamedType;
@@ -144,6 +144,6 @@ class HttpKernelControllerPass implements CompilerPassInterface
 
         $valueResolver = $container->findDefinition(DtoInitializerValueResolver::class);
 
-        $valueResolver->setArgument(0, ServiceLocatorTagPass::register($container, $initializers));
+        $valueResolver->setArgument('$initializers', ServiceLocatorTagPass::register($container, $initializers));
     }
 }

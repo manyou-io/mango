@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Manyou\Mango\Serializer;
+namespace Mango\Serializer;
 
 use ErrorException;
 use Money\Currency;

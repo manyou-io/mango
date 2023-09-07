@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Manyou\Mango\Jose;
+namespace Mango\Jose;
 
 use Jose\Component\Checker\ClaimCheckerManager;
 use Jose\Component\Checker\HeaderCheckerManager;
@@ -77,12 +77,7 @@ class JWTHandler implements AccessTokenHandlerInterface
             throw new BadCredentialsException('Invalid credentials.');
         }
 
-        return new UserBadge($claims[$this->userIdClaim], $this->noUserProviderConfigured(...), $claims);
-    }
-
-    private function noUserProviderConfigured(): void
-    {
-        throw new LogicException('You must configure a UserProvider to load user from JWT claims.');
+        return new UserBadge($claims[$this->userIdClaim], null, $claims);
     }
 
     private function verify(string $token): array

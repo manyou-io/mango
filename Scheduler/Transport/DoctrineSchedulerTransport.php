@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Manyou\Mango\Scheduler\Transport;
+namespace Mango\Scheduler\Transport;
 
 use Closure;
 use Doctrine\DBAL\Connection as DBALConnection;
@@ -11,8 +11,8 @@ use Doctrine\DBAL\Platforms\MySQLPlatform;
 use Doctrine\DBAL\Query\QueryBuilder;
 use Doctrine\DBAL\Result;
 use Doctrine\DBAL\Types\Types;
-use Manyou\Mango\Scheduler\Doctrine\Table\ScheduledMessagesTable;
-use Manyou\Mango\Scheduler\Messenger\ScheduleMessageStamp;
+use Mango\Scheduler\Doctrine\Table\ScheduledMessagesTable;
+use Mango\Scheduler\Messenger\ScheduleMessageStamp;
 use PDOException;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Messenger\Bridge\Doctrine\Transport\DoctrineTransport;

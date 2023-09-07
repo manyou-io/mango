@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Manyou\Mango\Doctrine;
+namespace Mango\Doctrine;
 
 use Closure;
 use Doctrine\DBAL\Connection;
@@ -10,8 +10,8 @@ use Doctrine\DBAL\Result;
 use Doctrine\DBAL\Schema\Schema;
 use Doctrine\Migrations\Provider\SchemaProvider as SchemaProviderInterface;
 use InvalidArgumentException;
-use Manyou\Mango\Doctrine\Contract\TableProvider;
-use Manyou\Mango\Doctrine\Exception\RowNumUnmatched;
+use Mango\Doctrine\Exception\UnexpectedRowsAffected;
+use Mango\Doctrine\Schema\TableBuilder;
 use PDOException;
 use Symfony\Component\DependencyInjection\Attribute\TaggedIterator;
 use Throwable;
@@ -30,11 +30,11 @@ class SchemaProvider implements SchemaProviderInterface
 
     private array $tables = [];
 
-    /** @param TableProvider[] $tableProviders */
+    /** @param TableBuilder[] $tableBuilders */
     public function __construct(
         private Connection $connection,
-        #[TaggedIterator('mango.doctrine.table_provider')]
-        private iterable $tableProviders,
+        #[TaggedIterator('mango.doctrine.table_builder')]
+        private iterable $tableBuilders,
     ) {
         $this->createSchema();
     }
@@ -90,10 +90,11 @@ class SchemaProvider implements SchemaProviderInterface
 
         $schema = new Schema(schemaConfig: $schemaManager->createSchemaConfig());
 
-        foreach ($this->tableProviders as $tableProvider) {
-            $table = $tableProvider($schema);
+        foreach ($this->tableBuilders as $tableBuilder) {
+            $table = new Table($schema->createTable($name = $tableBuilder->getName()));
+            $tableBuilder->build($table);
 
-            $this->tables[$table->name] = $table;
+            $this->tables[$name] = $table;
         }
 
         return $this->schema = $schema;
@@ -159,7 +160,7 @@ class SchemaProvider implements SchemaProviderInterface
         $rowNum = $this->connection->executeStatement($sql, $params, $types);
 
         if ($rowNum !== ($expectedRowNum ?? $rowNum)) {
-            throw RowNumUnmatched::create($expectedRowNum, $rowNum);
+            throw UnexpectedRowsAffected::create($expectedRowNum, $rowNum);
         }
 
         return $rowNum;
@@ -181,7 +182,7 @@ class SchemaProvider implements SchemaProviderInterface
         $rowNum = $this->connection->executeStatement($sql, $insert->getParameters(), $insert->getParameterTypes());
 
         if ($rowNum !== ($expectedRowNum ?? $rowNum)) {
-            throw RowNumUnmatched::create($expectedRowNum, $rowNum);
+            throw UnexpectedRowsAffected::create($expectedRowNum, $rowNum);
         }
 
         return $rowNum;
@@ -213,7 +214,7 @@ class SchemaProvider implements SchemaProviderInterface
         $rowNum = $this->connection->executeStatement($sql, array_merge(...$params), array_merge(...$types));
 
         if ($rowNum !== ($expectedRowNum ?? $rowNum)) {
-            throw RowNumUnmatched::create($expectedRowNum, $rowNum);
+            throw UnexpectedRowsAffected::create($expectedRowNum, $rowNum);
         }
 
         return $rowNum;

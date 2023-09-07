@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Manyou\Mango\Validator\Constraints;
+namespace Mango\Validator\Constraints;
 
 use Attribute;
 use Symfony\Component\Validator\Constraint;

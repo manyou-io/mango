@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Manyou\Mango\Query;
+namespace Mango\Query;
 
 use Doctrine\DBAL\Types\Type;
 

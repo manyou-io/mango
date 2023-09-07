@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Manyou\Mango\TaskQueue\Enum;
+namespace Mango\TaskQueue\Enum;
 
 enum TaskStatus: string
 {

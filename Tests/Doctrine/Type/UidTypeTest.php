@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Manyou\Mango\Tests\Doctrine\Type;
+namespace Mango\Tests\Doctrine\Type;
 
 use Doctrine\DBAL\Platforms\MariaDBPlatform;
 use Doctrine\DBAL\Platforms\OraclePlatform;
 use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
 use Doctrine\DBAL\Platforms\SqlitePlatform;
-use Manyou\Mango\Doctrine\Type\UlidType;
-use Manyou\Mango\Doctrine\Type\UuidType;
+use Mango\Doctrine\Type\UlidType;
+use Mango\Doctrine\Type\UuidType;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Uid\NilUuid;
 use Symfony\Component\Uid\Ulid;

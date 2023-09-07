@@ -2,25 +2,27 @@
 
 declare(strict_types=1);
 
-namespace Manyou\Mango\Scheduler\Doctrine\Table;
+namespace Mango\Scheduler\Doctrine\Table;
 
 use Doctrine\DBAL\Schema\Schema;
 use Doctrine\DBAL\Types\Types;
-use Manyou\Mango\Doctrine\Contract\TableProvider;
-use Manyou\Mango\Doctrine\Table;
+use Mango\Doctrine\Schema\TableBuilder;
+use Mango\Doctrine\Table;
 
-class ScheduledMessagesTable implements TableProvider
+class ScheduledMessagesTable implements TableBuilder
 {
     public const NAME = 'scheduled_messages';
 
-    public function __invoke(Schema $schema): Table
+    public function getName(): string
     {
-        $table = new Table($schema, self::NAME);
+        return self::NAME;
+    }
+
+    public function build(Table $table): void
+    {
         $table->addColumn('key', Types::STRING);
-        $table->addColumn('message_id', Types::BIGINT, alias: 'messageId');
+        $table->addColumn('message_id', Types::BIGINT);
         $table->setPrimaryKey(['key']);
         $table->addUniqueIndex(['message_id']);
-
-        return $table;
     }
 }

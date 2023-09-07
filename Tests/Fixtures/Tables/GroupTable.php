@@ -2,20 +2,24 @@
 
 declare(strict_types=1);
 
-namespace Manyou\Mango\Tests\Fixtures\Tables;
+namespace Mango\Tests\Fixtures\Tables;
 
 use Doctrine\DBAL\Schema\Schema;
 use Doctrine\DBAL\Types\Types;
-use Manyou\Mango\Doctrine\Contract\TableProvider;
-use Manyou\Mango\Doctrine\Table;
+use Mango\Doctrine\Schema\TableBuilder;
+use Mango\Doctrine\Table;
 
-class GroupTable implements TableProvider
+class GroupTable implements TableBuilder
 {
     public const NAME = 'group';
 
-    public function __invoke(Schema $schema): Table
+    public function getName(): string
     {
-        $table = new Table($schema, self::NAME);
+        return self::NAME;
+    }
+
+    public function build(Table $table): void
+    {
         $table->addColumn('id', Types::INTEGER, ['unsigned' => true]);
         $table->addColumn(
             'order',
@@ -24,7 +28,5 @@ class GroupTable implements TableProvider
             'orderString',
         );
         $table->setPrimaryKey(['id']);
-
-        return $table;
     }
 }

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Manyou\Mango\Doctrine;
+namespace Mango\Doctrine;
 
 use Closure;
 use Doctrine\DBAL\Connection;
@@ -19,8 +19,8 @@ use ErrorException;
 use Generator;
 use InvalidArgumentException;
 use LogicException;
-use Manyou\Mango\Doctrine\Exception\RecordsNotFound;
-use Manyou\Mango\Doctrine\Exception\RowNumUnmatched;
+use Mango\Doctrine\Exception\NotFoundException;
+use Mango\Doctrine\Exception\UnexpectedRowsAffected;
 use RuntimeException;
 
 use function array_fill;
@@ -369,11 +369,11 @@ class Query
     private function getSelectColumns(Table $table, array $selects): Generator
     {
         if ($selects === []) {
-            return yield from $table->getColumns();
+            return yield from $table->getColumnsByAlias();
         }
 
         if ('*' === ($selects[0] ?? null)) {
-            foreach ($table->getColumns() as $columnAlias => $column) {
+            foreach ($table->getColumnsByAlias() as $columnAlias => $column) {
                 yield ($selects[$columnAlias] ?? $columnAlias) => $column;
             }
 
@@ -674,7 +674,7 @@ class Query
         $values = $this->getQueryResult()->fetchFirstColumn();
 
         if ($values === []) {
-            throw RecordsNotFound::create();
+            throw NotFoundException::create();
         }
 
         return $this->convertResultToPHPValue('c0', $values[0]);
@@ -883,7 +883,7 @@ class Query
         $rowNum = $this->builder->executeStatement();
 
         if ($rowNum !== ($expectedRowNum ?? $rowNum)) {
-            throw RowNumUnmatched::create($expectedRowNum, $rowNum);
+            throw UnexpectedRowsAffected::create($expectedRowNum, $rowNum);
         }
 
         return $rowNum;
@@ -911,8 +911,11 @@ class Query
         $where = [];
         foreach ($expressions as $matchColumn => $expression) {
             if (is_string($matchColumn)) {
-                $where[] = $this->eq($matchColumn, $expression);
-                continue;
+                if (is_array($expression)) {
+                    $expression = $this->in($matchColumn, $expression);
+                }
+
+                $expression = $this->eq($matchColumn, $expression);
             }
 
             $where[] = $expression;

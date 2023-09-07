@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Manyou\Mango\Scheduler;
+namespace Mango\Scheduler;
 
 use DateTimeImmutable;
-use Manyou\Mango\Scheduler\Messenger\RecurringScheduleStamp;
-use Manyou\Mango\Scheduler\Messenger\ScheduleMessageStamp;
-use Manyou\Mango\Scheduler\Transport\DoctrineSchedulerTransport;
+use Mango\Scheduler\Messenger\RecurringScheduleStamp;
+use Mango\Scheduler\Messenger\ScheduleMessageStamp;
+use Mango\Scheduler\Transport\DoctrineSchedulerTransport;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;

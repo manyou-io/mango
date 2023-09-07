@@ -2,21 +2,25 @@
 
 declare(strict_types=1);
 
-namespace Manyou\Mango\TaskQueue\Doctrine\Table;
+namespace Mango\TaskQueue\Doctrine\Table;
 
 use Doctrine\DBAL\Schema\Schema;
 use Doctrine\DBAL\Types\Types;
-use Manyou\Mango\Doctrine\Contract\TableProvider;
-use Manyou\Mango\Doctrine\Table;
-use Manyou\Mango\Doctrine\Type\LogLevelType;
+use Mango\Doctrine\Schema\TableBuilder;
+use Mango\Doctrine\Table;
+use Mango\Doctrine\Type\LogLevelType;
 
-class TaskLogsTable implements TableProvider
+class TaskLogsTable implements TableBuilder
 {
     public const NAME = 'task_logs';
 
-    public function __invoke(Schema $schema): Table
+    public function getName(): string
     {
-        $table = new Table($schema, self::NAME);
+        return self::NAME;
+    }
+
+    public function build(Table $table): void
+    {
         $table->addColumn('id', 'ulid');
         $table->addColumn('task_id', 'ulid');
         $table->addColumn('level', LogLevelType::NAME);
@@ -25,7 +29,5 @@ class TaskLogsTable implements TableProvider
         $table->addColumn('extra', Types::JSON)->setPlatformOptions(['jsonb' => true]);
         $table->setPrimaryKey(['id']);
         $table->addForeignKeyConstraint(TasksTable::NAME, ['task_id'], ['id']);
-
-        return $table;
     }
 }

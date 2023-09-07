@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Manyou\Mango\Utils;
+namespace Mango\Utils;
 
 use LogicException;
 use Psr\Cache\CacheItemPoolInterface;

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Manyou\Mango\TaskQueue\Messenger\Stamp;
+namespace Mango\TaskQueue\Messenger\Stamp;
 
 use Symfony\Component\Messenger\Stamp\StampInterface;
 use Symfony\Component\Uid\Ulid;

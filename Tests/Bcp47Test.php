@@ -1,9 +1,9 @@
 <?php
 
-namespace Manyou\Mango;
+namespace Mango\Tests;
 
 use PHPUnit\Framework\TestCase;
-use Manyou\Mango\Utils\Bcp47;
+use Mango\Utils\Bcp47;
 
 class Bcp47Test extends TestCase
 {

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Manyou\Mango\Scheduler\Transport;
+namespace Mango\Scheduler\Transport;
 
 use Doctrine\DBAL\Connection as DBALConnection;
 use Doctrine\Persistence\ConnectionRegistry;

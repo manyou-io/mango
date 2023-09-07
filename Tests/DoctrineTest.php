@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Manyou\Mango\Tests;
+namespace Mango\Tests;
 
 use Doctrine\DBAL\Exception\TableNotFoundException;
 use Doctrine\DBAL\Types\Types;
-use Manyou\Mango\Doctrine\SchemaProvider;
-use Manyou\Mango\Tests\Fixtures\Tables\GroupTable;
-use Manyou\Mango\Tests\Fixtures\Tables\PostsTable;
-use Manyou\Mango\Tests\Fixtures\TestKernel;
+use Mango\Doctrine\SchemaProvider;
+use Mango\Tests\Fixtures\Tables\GroupTable;
+use Mango\Tests\Fixtures\Tables\PostsTable;
+use Mango\Tests\Fixtures\TestKernel;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 class DoctrineTest extends KernelTestCase

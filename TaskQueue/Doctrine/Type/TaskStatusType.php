@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Manyou\Mango\TaskQueue\Doctrine\Type;
+namespace Mango\TaskQueue\Doctrine\Type;
 
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Types\Type;
-use Manyou\Mango\Doctrine\Type\BackedEnumType;
-use Manyou\Mango\TaskQueue\Enum\TaskStatus;
+use Mango\Doctrine\Type\BackedEnumType;
+use Mango\TaskQueue\Enum\TaskStatus;
 
 class TaskStatusType extends Type
 {

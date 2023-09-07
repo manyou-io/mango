@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Manyou\Mango\TaskQueue\Messenger\Stamp;
+namespace Mango\TaskQueue\Messenger\Stamp;
 
 use Closure;
 use Symfony\Component\Messenger\Stamp\NonSendableStampInterface;

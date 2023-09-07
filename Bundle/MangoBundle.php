@@ -2,26 +2,26 @@
 
 declare(strict_types=1);
 
-namespace Manyou\Mango\Bundle;
+namespace Mango\Bundle;
 
 use Doctrine\Migrations\Provider\SchemaProvider as SchemaProviderInterface;
 use LogicException;
-use Manyou\Mango\DependencyInjection\DoctrineConnectionPass;
-use Manyou\Mango\DependencyInjection\DoctrineEnableSavepointPass;
-use Manyou\Mango\DependencyInjection\DoctrineMigrationsDependencyPass;
-use Manyou\Mango\DependencyInjection\DoctrineTypePass;
-use Manyou\Mango\DependencyInjection\HttpKernelControllerPass;
-use Manyou\Mango\DependencyInjection\MessengerMiddlewarePass;
-use Manyou\Mango\DependencyInjection\MonologChannelPass;
-use Manyou\Mango\Doctrine\SchemaProvider;
-use Manyou\Mango\Doctrine\Type\LogLevelType;
-use Manyou\Mango\Doctrine\Type\UlidType;
-use Manyou\Mango\Doctrine\Type\UsDateTimeImmutableType;
-use Manyou\Mango\Doctrine\Type\UuidType;
-use Manyou\Mango\HttpKernel\AsDtoInitializer;
-use Manyou\Mango\Scheduler\Messenger\RecurringScheduleMiddleware;
-use Manyou\Mango\TaskQueue\Doctrine\Type\TaskStatusType;
-use Manyou\Mango\TaskQueue\Messenger\Middleware\TaskQueueMiddware;
+use Mango\DependencyInjection\DoctrineConnectionPass;
+use Mango\DependencyInjection\DoctrineEnableSavepointPass;
+use Mango\DependencyInjection\DoctrineMigrationsDependencyPass;
+use Mango\DependencyInjection\DoctrineTypePass;
+use Mango\DependencyInjection\HttpKernelControllerPass;
+use Mango\DependencyInjection\MessengerMiddlewarePass;
+use Mango\DependencyInjection\MonologChannelPass;
+use Mango\Doctrine\SchemaProvider;
+use Mango\Doctrine\Type\LogLevelType;
+use Mango\Doctrine\Type\UlidType;
+use Mango\Doctrine\Type\UsDateTimeImmutableType;
+use Mango\Doctrine\Type\UuidType;
+use Mango\HttpKernel\AsDtoInitializer;
+use Mango\Scheduler\Messenger\RecurringScheduleMiddleware;
+use Mango\TaskQueue\Doctrine\Type\TaskStatusType;
+use Mango\TaskQueue\Messenger\Middleware\TaskQueueMiddware;
 use ReflectionClass;
 use ReflectionMethod;
 use Symfony\Component\DependencyInjection\ChildDefinition;

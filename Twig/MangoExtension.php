@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Manyou\Mango\Twig;
+namespace Mango\Twig;
 
-use Manyou\Mango\Utils\IntlMoneyFormatterFactory;
+use Mango\Utils\IntlMoneyFormatterFactory;
 use Money\Money;
 use Twig\Extension\AbstractExtension;
 use Twig\TwigFilter;

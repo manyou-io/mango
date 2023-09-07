@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Manyou\Mango\Tests\Doctrine\Type;
+namespace Mango\Tests\Doctrine\Type;
 
 use Doctrine\DBAL\Platforms\MariaDBPlatform;
 use Doctrine\DBAL\Platforms\OraclePlatform;
@@ -10,8 +10,8 @@ use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
 use Doctrine\DBAL\Platforms\SqlitePlatform;
 use Doctrine\DBAL\Types\ConversionException;
 use Doctrine\DBAL\Types\Type;
-use Manyou\Mango\Doctrine\Type\BackedEnumType;
-use Manyou\Mango\Doctrine\Type\EnumType;
+use Mango\Doctrine\Type\BackedEnumType;
+use Mango\Doctrine\Type\EnumType;
 use PHPUnit\Framework\TestCase;
 
 class EnumTypeTest extends TestCase

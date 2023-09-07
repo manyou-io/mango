@@ -2,25 +2,27 @@
 
 declare(strict_types=1);
 
-namespace Manyou\Mango\TaskQueue\Doctrine\Table;
+namespace Mango\TaskQueue\Doctrine\Table;
 
 use Doctrine\DBAL\Schema\Schema;
-use Manyou\Mango\Doctrine\Contract\TableProvider;
-use Manyou\Mango\Doctrine\Table;
-use Manyou\Mango\TaskQueue\Doctrine\Type\TaskStatusType;
+use Mango\Doctrine\Schema\TableBuilder;
+use Mango\Doctrine\Table;
+use Mango\TaskQueue\Doctrine\Type\TaskStatusType;
 
-class TasksTable implements TableProvider
+class TasksTable implements TableBuilder
 {
     public const NAME = 'tasks';
 
-    public function __invoke(Schema $schema): Table
+    public function getName(): string
     {
-        $table = new Table($schema, self::NAME);
+        return self::NAME;
+    }
+
+    public function build(Table $table): void
+    {
         $table->addColumn('id', 'ulid');
         $table->addColumn('status', TaskStatusType::NAME);
         $table->setPrimaryKey(['id']);
         $table->addIndex(['status']);
-
-        return $table;
     }
 }

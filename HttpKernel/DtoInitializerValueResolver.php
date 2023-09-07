@@ -2,9 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Manyou\Mango\HttpKernel;
+namespace Mango\HttpKernel;
 
+use Closure;
+use Mango\HttpKernel\MapRequestPayload as MangoMapRequestPayload;
 use Psr\Container\ContainerInterface;
+use Psr\Container\NotFoundExceptionInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
@@ -13,15 +16,36 @@ use Symfony\Component\HttpKernel\Controller\ValueResolverInterface;
 use Symfony\Component\HttpKernel\ControllerMetadata\ArgumentMetadata;
 use Symfony\Component\Serializer\Normalizer\AbstractObjectNormalizer;
 
-use function is_callable;
+use function is_string;
 
 class DtoInitializerValueResolver implements ValueResolverInterface
 {
     public function __construct(
+        #[Autowire(service: 'service_container')]
+        private ContainerInterface $container,
         private ContainerInterface $initializers,
         #[Autowire(service: 'argument_resolver')]
         private ArgumentResolverInterface $argumentResolver,
     ) {
+    }
+
+    private function getInitializer(MapRequestPayload $attribute, ArgumentMetadata $argument): ?callable
+    {
+        try {
+            if ($attribute instanceof MangoMapRequestPayload && $attribute->initializer !== null) {
+                if (is_string($attribute->initializer)) {
+                    return $this->container->get($attribute->initializer);
+                }
+
+                return Closure::fromCallable([$this->container->get($attribute->initializer[0]), $attribute->initializer[1]]);
+            }
+
+            if ($type = $argument->getType()) {
+                return $this->initializers->get($type);
+            }
+        } catch (NotFoundExceptionInterface) {
+            return null;
+        }
     }
 
     public function resolve(Request $request, ArgumentMetadata $argument): iterable
@@ -31,13 +55,7 @@ class DtoInitializerValueResolver implements ValueResolverInterface
             return [];
         }
 
-        $type = $argument->getType();
-        if (! $type || ! $this->initializers->has($type)) {
-            return [];
-        }
-
-        $initializer = $this->initializers->get($type);
-        if (! is_callable($initializer)) {
+        if (! $initializer = $this->getInitializer($attribute, $argument)) {
             return [];
         }
 

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Manyou\Mango\Doctrine\Type;
+namespace Mango\Doctrine\Type;
 
 use Symfony\Component\Uid\Ulid;
 

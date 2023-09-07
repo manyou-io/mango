@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Manyou\Mango\RestApi;
+namespace Mango\RestApi;
 
 use Symfony\Component\Serializer\Annotation\Ignore;
 

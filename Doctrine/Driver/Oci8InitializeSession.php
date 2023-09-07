@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Manyou\Mango\Doctrine\Driver;
+namespace Mango\Doctrine\Driver;
 
 use Doctrine\DBAL\Driver;
 use Doctrine\DBAL\Driver\OCI8\Driver as OCI8Driver;

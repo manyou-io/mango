@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Manyou\Mango\TaskQueue\Monolog;
+namespace Mango\TaskQueue\Monolog;
 
-use Manyou\Mango\Doctrine\SchemaProvider;
-use Manyou\Mango\TaskQueue\Doctrine\Table\TaskLogsTable;
+use Mango\Doctrine\SchemaProvider;
+use Mango\TaskQueue\Doctrine\Table\TaskLogsTable;
 use Monolog\Handler\AbstractHandler;
 use Monolog\Handler\FormattableHandlerInterface;
 use Monolog\Handler\FormattableHandlerTrait;
