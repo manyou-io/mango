@@ -878,15 +878,15 @@ class Query
         return $this->comparison($x, '>=', $y);
     }
 
-    public function executeStatement(?int $expectedRowNum = null): int
+    public function executeStatement(?int $rowsAffected = null): int
     {
-        $rowNum = $this->builder->executeStatement();
+        $actual = $this->builder->executeStatement();
 
-        if ($rowNum !== ($expectedRowNum ?? $rowNum)) {
-            throw UnexpectedRowsAffected::create($expectedRowNum, $rowNum);
+        if ($actual !== ($rowsAffected ?? $actual)) {
+            throw UnexpectedRowsAffected::create($rowsAffected, $actual);
         }
 
-        return $rowNum;
+        return $actual;
     }
 
     public function __call($name, $arguments)

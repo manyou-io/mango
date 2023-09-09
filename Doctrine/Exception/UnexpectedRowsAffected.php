@@ -12,8 +12,8 @@ use function sprintf;
 #[WithHttpStatus(409)]
 class UnexpectedRowsAffected extends RuntimeException implements ExceptionInterface
 {
-    public static function create(int $expectedRowNum, int $rowNum)
+    public static function create(int $expected, int $actual)
     {
-        return new self(sprintf('Unexpected number of rows affected: actual %d; expected %d.', $rowNum, $expectedRowNum));
+        return new self(sprintf('Unexpected number of rows affected: actual %d; expected %d.', $actual, $expected));
     }
 }
