@@ -910,6 +910,10 @@ class Query
     {
         $where = [];
         foreach ($expressions as $matchColumn => $expression) {
+            if ($expression === null) {
+                continue;
+            }
+
             if (is_string($matchColumn)) {
                 if (is_array($expression)) {
                     $expression = $this->in($matchColumn, $expression);

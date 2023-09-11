@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Mango\Scheduler\Doctrine\Table;
 
-use Doctrine\DBAL\Schema\Schema;
 use Doctrine\DBAL\Types\Types;
 use Mango\Doctrine\Schema\TableBuilder;
 use Mango\Doctrine\Table;

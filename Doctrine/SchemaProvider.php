@@ -17,6 +17,7 @@ use Symfony\Component\DependencyInjection\Attribute\TaggedIterator;
 use Throwable;
 use UnexpectedValueException;
 
+use function array_keys;
 use function array_map;
 use function array_merge;
 use function implode;
@@ -218,5 +219,11 @@ class SchemaProvider implements SchemaProviderInterface
         }
 
         return $rowNum;
+    }
+
+    public function upsertLock(string $table, array $data): void
+    {
+        $q = $this->createQuery();
+        $this->onConflictDoUpdate($q->insert($table, $data), array_keys($data), $data);
     }
 }
