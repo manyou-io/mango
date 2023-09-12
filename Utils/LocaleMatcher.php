@@ -12,7 +12,7 @@ use function locale_parse;
 use function preg_match;
 use function strtoupper;
 
-class Bcp47
+class LocaleMatcher
 {
     private array $firstMatchesCache = [];
 

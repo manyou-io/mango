@@ -1,20 +1,20 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Mango\Tests;
 
+use Mango\Utils\LocaleMatcher;
 use PHPUnit\Framework\TestCase;
-use Mango\Utils\Bcp47;
 
-class Bcp47Test extends TestCase
+class LocaleMatcherTest extends TestCase
 {
-    /**
-     * @dataProvider localeMatchingProvider
-     */
+    /** @dataProvider localeMatchingProvider */
     public function testGetBestMatch($availableLocales, $tests): void
     {
-        $bcp47 = new Bcp47();
+        $localeMatcher = new LocaleMatcher();
         foreach ($tests as [$clientLocale, $expected]) {
-            $this->assertSame($expected, $bcp47->getBestMatch($clientLocale, $availableLocales));
+            $this->assertSame($expected, $localeMatcher->getBestMatch($clientLocale, $availableLocales));
         }
     }
 
