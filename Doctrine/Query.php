@@ -758,18 +758,6 @@ class Query
         ]);
     }
 
-    public function createPositionalParameter(string|array $x, mixed $value): self
-    {
-        [$tableAlias, $column] = $this->splitColumn($x);
-
-        $column = $this->selectTableMap[$tableAlias]->getColumn($column);
-        $type   = $column->getType();
-
-        $this->builder->createPositionalParameter($value, $type);
-
-        return $this;
-    }
-
     public function in(string|array $x, array $y): string
     {
         return $this->comparisonArray($x, 'IN', $y);
