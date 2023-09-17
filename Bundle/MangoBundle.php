@@ -18,7 +18,7 @@ use Mango\Doctrine\Type\LogLevelType;
 use Mango\Doctrine\Type\UlidType;
 use Mango\Doctrine\Type\UsDateTimeImmutableType;
 use Mango\Doctrine\Type\UuidType;
-use Mango\HttpKernel\AsDtoInitializer;
+use Mango\HttpKernel\AsPayloadInitializer;
 use Mango\Scheduler\Messenger\RecurringScheduleMiddleware;
 use Mango\TaskQueue\Doctrine\Type\TaskStatusType;
 use Mango\TaskQueue\Messenger\Middleware\TaskQueueMiddware;
@@ -37,8 +37,8 @@ class MangoBundle extends AbstractBundle
     public function build(ContainerBuilder $container): void
     {
         $container->registerAttributeForAutoconfiguration(
-            AsDtoInitializer::class,
-            static function (ChildDefinition $definition, AsDtoInitializer $attribute, ReflectionClass|ReflectionMethod $reflector): void {
+            AsPayloadInitializer::class,
+            static function (ChildDefinition $definition, AsPayloadInitializer $attribute, ReflectionClass|ReflectionMethod $reflector): void {
                 $tagAttributes = get_object_vars($attribute);
                 if ($reflector instanceof ReflectionMethod) {
                     if (isset($tagAttributes['method'])) {
@@ -50,7 +50,7 @@ class MangoBundle extends AbstractBundle
                     $tagAttributes['method'] = $reflector->getName();
                 }
 
-                $definition->addTag('mango.http_kernel.dto_initializer', $tagAttributes);
+                $definition->addTag('mango.request_payload_initializer', $tagAttributes);
             },
         );
 

@@ -7,7 +7,7 @@ namespace Mango\HttpKernel;
 use Attribute;
 
 #[Attribute(Attribute::TARGET_CLASS | Attribute::TARGET_METHOD)]
-class AsDtoInitializer
+class AsPayloadInitializer
 {
     public function __construct(
         public ?string $class = null,

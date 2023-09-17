@@ -6,6 +6,7 @@ namespace Mango\HttpKernel;
 
 use Attribute;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload as SymfonyMapRequestPayload;
+use Symfony\Component\HttpKernel\Controller\ArgumentResolver\RequestPayloadValueResolver;
 use Symfony\Component\Validator\Constraints\GroupSequence;
 
 #[Attribute(Attribute::TARGET_PARAMETER)]
@@ -15,7 +16,7 @@ class MapRequestPayload extends SymfonyMapRequestPayload
         array|string|null $acceptFormat = null,
         array $serializationContext = [],
         string|GroupSequence|array|null $validationGroups = null,
-        string $resolver = DtoInitializerValueResolver::class,
+        string $resolver = RequestPayloadValueResolver::class,
         public readonly array|string|null $initializer = null,
     ) {
         parent::__construct($acceptFormat, $serializationContext, $validationGroups, $resolver);

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Mango\DependencyInjection;
 
-use Mango\HttpKernel\DtoInitializerValueResolver;
+use Mango\HttpKernel\PayloadInitializationListener;
 use ReflectionClass;
 use ReflectionException;
 use ReflectionNamedType;
@@ -91,7 +91,7 @@ class HttpKernelControllerPass implements CompilerPassInterface
     {
         $initializers = [];
 
-        foreach ($container->findTaggedServiceIds('mango.http_kernel.dto_initializer', true) as $serviceId => $tags) {
+        foreach ($container->findTaggedServiceIds('mango.request_payload_initializer', true) as $serviceId => $tags) {
             foreach ($tags as $tag) {
                 $className = $this->getServiceClass($container, $serviceId);
                 $r         = $container->getReflectionClass($className);
@@ -142,8 +142,7 @@ class HttpKernelControllerPass implements CompilerPassInterface
             }
         }
 
-        $valueResolver = $container->findDefinition(DtoInitializerValueResolver::class);
-
-        $valueResolver->setArgument('$initializers', ServiceLocatorTagPass::register($container, $initializers));
+        $listener = $container->findDefinition(PayloadInitializationListener::class);
+        $listener->setArgument('$initializers', ServiceLocatorTagPass::register($container, $initializers));
     }
 }

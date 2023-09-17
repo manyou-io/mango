@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Mango\Twig;
 
-use Mango\Utils\IntlMoneyFormatterFactory;
+use Mango\Utils\MoneyFormatterFactory;
 use Money\Money;
 use Twig\Extension\AbstractExtension;
 use Twig\TwigFilter;
@@ -13,10 +13,6 @@ use function locale_get_default;
 
 class MangoExtension extends AbstractExtension
 {
-    public function __construct(private IntlMoneyFormatterFactory $moneyFormatterFactory)
-    {
-    }
-
     public function getFilters(): array
     {
         return [
@@ -28,6 +24,6 @@ class MangoExtension extends AbstractExtension
     {
         $locale ??= locale_get_default();
 
-        return $this->moneyFormatterFactory->create($locale)->format($money);
+        return MoneyFormatterFactory::create($locale)->format($money);
     }
 }
