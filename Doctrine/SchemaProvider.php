@@ -7,6 +7,7 @@ namespace Mango\Doctrine;
 use Closure;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Result;
+use Doctrine\DBAL\Schema\PostgreSQLSchemaManager;
 use Doctrine\DBAL\Schema\Schema;
 use Doctrine\Migrations\Provider\SchemaProvider as SchemaProviderInterface;
 use InvalidArgumentException;
@@ -90,6 +91,14 @@ class SchemaProvider implements SchemaProviderInterface
         $schemaManager = $this->connection->createSchemaManager();
 
         $schema = new Schema(schemaConfig: $schemaManager->createSchemaConfig());
+
+        if ($schemaManager instanceof PostgreSQLSchemaManager) {
+            foreach ($schemaManager->listSchemaNames() as $namespace) {
+                if (! $schema->hasNamespace($namespace)) {
+                    $schema->createNamespace($namespace);
+                }
+            }
+        }
 
         foreach ($this->tableBuilders as $tableBuilder) {
             $table = new Table($schema->createTable($name = $tableBuilder->getName()));
