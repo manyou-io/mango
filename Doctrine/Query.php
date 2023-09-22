@@ -913,7 +913,9 @@ class Query
             $where[] = $expression;
         }
 
-        $this->builder->andWhere(...$where);
+        if ($where !== []) {
+            $this->builder->andWhere(...$where);
+        }
 
         return $this;
     }

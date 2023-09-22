@@ -11,7 +11,6 @@ use Jose\Component\Checker\InvalidHeaderException;
 use Jose\Component\Core\Util\JsonConverter;
 use Jose\Component\Signature\JWSVerifier;
 use Jose\Component\Signature\Serializer\CompactSerializer as JWSCompactSerializer;
-use LogicException;
 use Psr\Log\LoggerInterface;
 use RuntimeException;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -32,6 +31,7 @@ class JWTHandler implements AccessTokenHandlerInterface
         private ClaimCheckerManager $claimCheckerManager,
         #[Autowire(service: 'jose.jws_verifier.access_token')]
         private JWSVerifier $jwsLoader,
+        #[Autowire(param: 'jose.access_token.mandatory_claims')]
         private array $mandatoryClaims = [],
         private ?LoggerInterface $logger = null,
         private string $userIdClaim = 'sub',

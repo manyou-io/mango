@@ -61,9 +61,11 @@ class PayloadInitializationListener
                 continue;
             }
 
-            $request = $event->getRequest();
+            $initializerArgs = $arguments;
+            if ($argument instanceof MangoMapRequestPayload && $argument->initializerResolve) {
+                $initializerArgs = $argument->$this->argumentResolver->getArguments($event->getRequest(), $initializer);
+            }
 
-            $initializerArgs = $this->argumentResolver->getArguments($request, $initializer);
             if (! $object = $initializer(...$initializerArgs)) {
                 continue;
             }
