@@ -866,9 +866,17 @@ class Query
         return $this->comparison($x, '>=', $y);
     }
 
-    public function executeStatement(?int $rowsAffected = null): int
+    public function executeStatement(?int $rowsAffected = null, ?callable $preprocess = null): int
     {
-        $actual = $this->builder->executeStatement();
+        $sql    = $this->getSQL();
+        $params = $this->getParameters();
+        $types  = $this->getParameterTypes();
+
+        if ($preprocess) {
+            $preprocess($sql, $params, $types);
+        }
+
+        $actual = $this->connection->executeStatement($sql, $params, $types);
 
         if ($actual !== ($rowsAffected ?? $actual)) {
             throw UnexpectedRowsAffected::create($rowsAffected, $actual);
@@ -918,5 +926,14 @@ class Query
         }
 
         return $this;
+    }
+
+    public function onConflictDoNothing(string|array $conflict, ?int $rowsAffected = null): int
+    {
+        $conflict = array_map(static fn ($n) => $this->quoteColumn($n), (array) $conflict);
+
+        return $this->executeStatement($rowsAffected, static function (&$sql) use ($conflict) {
+            $sql .= ' ON CONFLICT (' . implode(', ', $conflict) . ') DO NOTHING';
+        });
     }
 }
