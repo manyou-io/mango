@@ -18,7 +18,6 @@ class MapRequestPayload extends SymfonyMapRequestPayload
         string|GroupSequence|array|null $validationGroups = null,
         string $resolver = RequestPayloadValueResolver::class,
         public readonly array|string|null $initializer = null,
-        public readonly bool $initializerResolve = true,
     ) {
         parent::__construct($acceptFormat, $serializationContext, $validationGroups, $resolver);
     }
