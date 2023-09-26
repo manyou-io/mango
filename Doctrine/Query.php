@@ -37,6 +37,7 @@ use function is_int;
 use function is_string;
 use function sprintf;
 use function strpos;
+use function substr;
 
 /**
  * @method $this andWhere($where)
@@ -468,6 +469,25 @@ class Query
     {
         $this->result = $this->connection->executeQuery(
             $this->getSQL() . ' ' . $this->connection->getDatabasePlatform()->getWriteLockSQL(),
+            $this->getParameters(),
+            $this->getParameterTypes(),
+        );
+
+        return $this;
+    }
+
+    public function returning(?string ...$selects): self
+    {
+        $selectSql = $this->schema->createQuery()
+            ->from($this->selectTableMap[$this->fromAlias]->getName())
+            ->select(...$selects)
+            ->getSQL();
+
+        // strlen('SELECT ') === 7
+        $returningSql = ' RETURNING ' . substr($selectSql, 7, strpos($selectSql, 'FROM') - 8);
+
+        $this->result = $this->connection->executeQuery(
+            $this->getSQL() . $returningSql,
             $this->getParameters(),
             $this->getParameterTypes(),
         );
@@ -926,7 +946,7 @@ class Query
 
     public function onConflictDoNothing(string|array $conflict, ?int $rowsAffected = null): int
     {
-        $conflict = array_map(static fn ($n) => $this->quoteColumn($n), (array) $conflict);
+        $conflict = array_map(fn ($n) => $this->quoteColumn($n), (array) $conflict);
 
         return $this->executeStatement($rowsAffected, static function (&$sql) use ($conflict) {
             $sql .= ' ON CONFLICT (' . implode(', ', $conflict) . ') DO NOTHING';

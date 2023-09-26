@@ -15,12 +15,12 @@ trait NormalizerTrait
     private function normalize(?object $data, ...$context): ?array
     {
         return $data === null ? $data
-            : $this->normalizer->normalize($data, 'json', $context);
+            : $this->normalizer->normalize($data, null, $context);
     }
 
     private function denormalize(?array $data, string $type, ...$context): ?object
     {
         return $data === null ? $data
-            : $this->denormalizer->denormalize($data, $type, 'json', $context);
+            : $this->denormalizer->denormalize($data, $type, null, $context);
     }
 }
