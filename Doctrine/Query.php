@@ -19,7 +19,7 @@ use ErrorException;
 use Generator;
 use InvalidArgumentException;
 use LogicException;
-use Mango\Doctrine\Exception\NotFoundException;
+use Mango\Doctrine\Exception\NotFound;
 use Mango\Doctrine\Exception\UnexpectedRowsAffected;
 use RuntimeException;
 
@@ -671,10 +671,8 @@ class Query
 
     public function fetchOne(): mixed
     {
-        $values = $this->getQueryResult()->fetchFirstColumn();
-
-        if ($values === []) {
-            throw NotFoundException::create();
+        if (false === $values = $this->getQueryResult()->fetchNumeric()) {
+            throw new NotFound();
         }
 
         return $this->convertResultToPHPValue('c0', $values[0]);
@@ -682,9 +680,7 @@ class Query
 
     public function fetchOneWithDefault(mixed $value): mixed
     {
-        $values = $this->getQueryResult()->fetchFirstColumn();
-
-        if ($values === []) {
+        if (false === $values = $this->getQueryResult()->fetchNumeric()) {
             return $value;
         }
 
