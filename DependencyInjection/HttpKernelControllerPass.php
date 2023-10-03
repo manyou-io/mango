@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Mango\DependencyInjection;
 
-use Mango\HttpKernel\PayloadInitializationListener;
+use Mango\HttpKernel\MapRequestPayloadListener;
 use ReflectionClass;
 use ReflectionException;
 use ReflectionNamedType;
@@ -142,7 +142,7 @@ class HttpKernelControllerPass implements CompilerPassInterface
             }
         }
 
-        $listener = $container->findDefinition(PayloadInitializationListener::class);
+        $listener = $container->findDefinition(MapRequestPayloadListener::class);
         $listener->setArgument('$initializers', ServiceLocatorTagPass::register($container, $initializers));
     }
 }

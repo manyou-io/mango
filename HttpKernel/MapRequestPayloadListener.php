@@ -4,47 +4,35 @@ declare(strict_types=1);
 
 namespace Mango\HttpKernel;
 
-use Closure;
-use Mango\HttpKernel\MapRequestPayload as MangoMapRequestPayload;
 use Psr\Container\ContainerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Component\HttpKernel\Event\ControllerArgumentsEvent;
 use Symfony\Component\Serializer\Normalizer\AbstractObjectNormalizer;
+use Symfony\Component\Serializer\Normalizer\DenormalizerInterface;
 
-use function is_string;
+use function in_array;
 
-class PayloadInitializationListener
+class MapRequestPayloadListener
 {
     public function __construct(
         #[Autowire(service: 'service_container')]
         private ContainerInterface $container,
         private ContainerInterface $initializers,
+        private DenormalizerInterface $denormalizer,
     ) {
-    }
-
-    private function getInitializer(MapRequestPayload $attribute): ?callable
-    {
-        if ($attribute instanceof MangoMapRequestPayload && $attribute->initializer !== null) {
-            if (is_string($attribute->initializer)) {
-                return $this->container->get($attribute->initializer);
-            }
-
-            return Closure::fromCallable([$this->container->get($attribute->initializer[0]), $attribute->initializer[1]]);
-        }
-
-        $type = $attribute->metadata->getType();
-        if ($type && $this->initializers->has($type)) {
-            return $this->initializers->get($type);
-        }
-
-        return null;
     }
 
     #[AsEventListener(priority: 1)]
     public function onKernelControllerArguments(ControllerArgumentsEvent $event): void
     {
+        $request = $event->getRequest();
+
+        if (! $routeParams = $request->attributes->get('_route_params', [])) {
+            return;
+        }
+
         $arguments = $event->getArguments();
 
         foreach ($arguments as $i => $argument) {
@@ -52,17 +40,21 @@ class PayloadInitializationListener
                 continue;
             }
 
-            if (! $initializer = $this->getInitializer($argument)) {
+            $groups = $argument->serializationContext['groups'] ?? [];
+
+            if ($groups !== [] && ! in_array('route', $groups, true)) {
                 continue;
             }
 
-            if (! $object = $initializer(...$arguments)) {
-                continue;
-            }
+            $object = $this->denormalizer->denormalize(
+                $routeParams,
+                $argument->metadata->getType(),
+                context: ['groups' => ['route']] + $argument->serializationContext,
+            );
 
             $attribute = new MapRequestPayload(
                 $argument->acceptFormat,
-                $argument->serializationContext + [AbstractObjectNormalizer::OBJECT_TO_POPULATE => $object],
+                [AbstractObjectNormalizer::OBJECT_TO_POPULATE => $object] + $argument->serializationContext,
                 $argument->validationGroups,
             );
 

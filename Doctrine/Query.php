@@ -19,7 +19,6 @@ use ErrorException;
 use Generator;
 use InvalidArgumentException;
 use LogicException;
-use Mango\Doctrine\Exception\NotFound;
 use Mango\Doctrine\Exception\UnexpectedRowsAffected;
 use RuntimeException;
 
@@ -680,28 +679,16 @@ class Query
 
     public function fetchFirstColumn(): array
     {
-        $values = $this->getQueryResult()->fetchFirstColumn();
-
-        foreach ($values as $i => $value) {
-            $values[$i] = $this->convertResultToPHPValue('c0', $value);
-        }
-
-        return $values;
+        return array_map(
+            fn ($value) => $this->convertResultToPHPValue('c0', $value),
+            $this->getQueryResult()->fetchFirstColumn(),
+        );
     }
 
-    public function fetchOne(): mixed
+    public function fetchOne(mixed $default = false): mixed
     {
         if (false === $values = $this->getQueryResult()->fetchNumeric()) {
-            throw new NotFound();
-        }
-
-        return $this->convertResultToPHPValue('c0', $values[0]);
-    }
-
-    public function fetchOneWithDefault(mixed $value): mixed
-    {
-        if (false === $values = $this->getQueryResult()->fetchNumeric()) {
-            return $value;
+            return $default;
         }
 
         return $this->convertResultToPHPValue('c0', $values[0]);
@@ -927,11 +914,7 @@ class Query
             }
 
             if (is_string($matchColumn)) {
-                if (is_array($expression)) {
-                    $expression = $this->in($matchColumn, $expression);
-                }
-
-                $expression = $this->eq($matchColumn, $expression);
+                $expression = is_array($expression) ? $this->in($matchColumn, $expression) : $this->eq($matchColumn, $expression);
             }
 
             $where[] = $expression;
@@ -942,6 +925,11 @@ class Query
         }
 
         return $this;
+    }
+
+    public function andWhere(mixed ...$expressions): self
+    {
+        return $this->where(...$expressions);
     }
 
     public function onConflictDoNothing(string|array $conflict, ?int $rowsAffected = null): int

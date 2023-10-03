@@ -7,9 +7,9 @@ namespace Mango\Query;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Result;
 use LogicException;
-use RuntimeException;
 
 use function array_keys;
+use function array_map;
 
 class QueryResult
 {
@@ -187,22 +187,19 @@ class QueryResult
     public function fetchFirstColumn(): array
     {
         $this->requireOneColumn();
-        $values = $this->result->fetchFirstColumn();
 
-        foreach ($values as $i => $value) {
-            $values[$i] = $this->convertResultToPHPValue($this->key0, $value);
-        }
-
-        return $values;
+        return array_map(
+            fn ($value) => $this->convertResultToPHPValue($this->key0, $value),
+            $this->result->fetchFirstColumn(),
+        );
     }
 
-    public function fetchOne(): mixed
+    public function fetchOne(mixed $default = false): mixed
     {
         $this->requireOneColumn();
-        $values = $this->result->fetchFirstColumn();
 
-        if ($values === []) {
-            throw new RuntimeException('No result found.');
+        if (false === $values = $this->result->fetchNumeric()) {
+            return $default;
         }
 
         return $this->convertResultToPHPValue($this->key0, $values[0]);

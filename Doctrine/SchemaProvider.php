@@ -13,9 +13,8 @@ use Doctrine\Migrations\Provider\SchemaProvider as SchemaProviderInterface;
 use InvalidArgumentException;
 use Mango\Doctrine\Exception\UnexpectedRowsAffected;
 use Mango\Doctrine\Schema\TableBuilder;
-use PDOException;
 use Symfony\Component\DependencyInjection\Attribute\TaggedIterator;
-use Throwable;
+use Symfony\Component\Messenger\MessageBusInterface;
 use UnexpectedValueException;
 
 use function array_keys;
@@ -28,7 +27,7 @@ use function substr;
 
 class SchemaProvider implements SchemaProviderInterface
 {
-    private Schema $schema;
+    private readonly Schema $schema;
 
     private array $tables = [];
 
@@ -37,6 +36,7 @@ class SchemaProvider implements SchemaProviderInterface
         private Connection $connection,
         #[TaggedIterator('mango.doctrine.table_builder')]
         private iterable $tableBuilders,
+        private MessageBusInterface $messageBus,
     ) {
         $this->createSchema();
     }
@@ -46,30 +46,9 @@ class SchemaProvider implements SchemaProviderInterface
         return $this->connection;
     }
 
-    public function transactional(Closure $func)
+    public function transactional(Closure $func): mixed
     {
-        $this->connection->beginTransaction();
-        $commit = true;
-
-        try {
-            $res = $func($this, $commit);
-            if ($commit) {
-                $this->connection->commit();
-            }
-
-            return $res;
-        } catch (Throwable $e) {
-            $commit = false;
-
-            throw $e;
-        } finally {
-            if (! $commit) {
-                try {
-                    $this->connection->rollBack();
-                } catch (PDOException) {
-                }
-            }
-        }
+        return $this->connection->transactional($func);
     }
 
     public function toSql(): array

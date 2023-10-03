@@ -12,8 +12,9 @@ use function sprintf;
 
 final class AlgHeaderChecker implements HeaderChecker
 {
-    public function __construct(private readonly string $algorithm)
-    {
+    public function __construct(
+        private readonly string $algorithm,
+    ) {
     }
 
     public function checkHeader(mixed $value): void
