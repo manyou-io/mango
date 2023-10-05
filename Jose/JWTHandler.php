@@ -102,15 +102,12 @@ class JWTHandler implements AccessTokenHandlerInterface
         if ($this->jwsLoader->verifyWithKeySet($jws, $signatureKeyset, 0) === false) {
             throw new RuntimeException('Failed to decode the JWT token.');
         }
-
         $this->stopwatch->stop('jwsLoader->verifyWithKeySet');
 
         $jwt = $jws->getPayload();
         if (! is_string($jwt)) {
             throw new RuntimeException('Failed to decode the JWT token.');
         }
-
-        $this->stopwatch->lap('$jws->getPayload');
 
         $payload = JsonConverter::decode($jwt);
 
