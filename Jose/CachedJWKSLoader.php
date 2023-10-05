@@ -27,9 +27,9 @@ class CachedJWKSLoader implements JWKSLoader
 
     public function __invoke(): JWKSet
     {
-        $token = hash('xxh128', $this->url);
+        $key = 'jwks-' . hash('xxh128', $this->url);
 
-        return $this->cache->get($token, function (ItemInterface $item) {
+        return $this->cache->get($key, function (ItemInterface $item) {
             $item->expiresAfter($this->expiresAfter);
 
             return $this->jkuFactory->loadFromUrl($this->url, $this->header);
