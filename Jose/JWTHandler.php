@@ -17,6 +17,7 @@ use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Security\Core\Exception\BadCredentialsException;
 use Symfony\Component\Security\Http\AccessToken\AccessTokenHandlerInterface;
 use Symfony\Component\Security\Http\Authenticator\Passport\Badge\UserBadge;
+use Symfony\Component\Stopwatch\Stopwatch;
 use Throwable;
 
 use function is_string;
@@ -31,6 +32,7 @@ class JWTHandler implements AccessTokenHandlerInterface
         private ClaimCheckerManager $claimCheckerManager,
         #[Autowire(service: 'jose.jws_verifier.access_token')]
         private JWSVerifier $jwsLoader,
+        private Stopwatch $stopwatch,
         #[Autowire(param: 'jose.access_token.mandatory_claims')]
         private array $mandatoryClaims = [],
         private ?LoggerInterface $logger = null,
@@ -84,21 +86,36 @@ class JWTHandler implements AccessTokenHandlerInterface
     {
         $serializer = new JWSCompactSerializer();
 
+        $this->stopwatch->start('verifyToken');
+
         $jws = $serializer->unserialize($token);
+        $this->stopwatch->lap('unserialize');
+
         $this->signatureHeaderCheckerManager->check($jws, 0);
 
+        $this->stopwatch->lap('signatureHeaderCheckerManager');
+
         $signatureKeyset = ($this->jwksLoader)();
+        $this->stopwatch->lap('jwksLoader');
         if ($this->jwsLoader->verifyWithKeySet($jws, $signatureKeyset, 0) === false) {
             throw new RuntimeException('Failed to decode the JWT token.');
         }
+
+        $this->stopwatch->lap('verifyWithKeySet');
 
         $jwt = $jws->getPayload();
         if (! is_string($jwt)) {
             throw new RuntimeException('Failed to decode the JWT token.');
         }
 
+        $this->stopwatch->lap('$jws->getPayload');
+
         $payload = JsonConverter::decode($jwt);
+        $this->stopwatch->lap('JsonConverter::decode');
         $this->claimCheckerManager->check($payload, $this->mandatoryClaims);
+        $this->stopwatch->lap('claimCheckerManager->check');
+
+        $this->stopwatch->stop('verifyToken');
 
         return $payload;
     }
