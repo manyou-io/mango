@@ -85,23 +85,25 @@ class JWTHandler implements AccessTokenHandlerInterface
     private function verify(string $token): array
     {
         $serializer = new JWSCompactSerializer();
-
-        $this->stopwatch->start('verifyToken');
-
+        $this->stopwatch->openSection();
+        $this->stopwatch->start('$serializer->unserialize');
         $jws = $serializer->unserialize($token);
-        $this->stopwatch->lap('unserialize');
+        $this->stopwatch->stop('$serializer->unserialize');
 
+        $this->stopwatch->start('signatureHeaderCheckerManager->check');
         $this->signatureHeaderCheckerManager->check($jws, 0);
+        $this->stopwatch->stop('signatureHeaderCheckerManager->check');
 
-        $this->stopwatch->lap('signatureHeaderCheckerManager');
-
+        $this->stopwatch->start('loadSignatureKeyset');
         $signatureKeyset = ($this->jwksLoader)();
-        $this->stopwatch->lap('jwksLoader');
+        $this->stopwatch->stop('loadSignatureKeyset');
+
+        $this->stopwatch->start('jwsLoader->verifyWithKeySet');
         if ($this->jwsLoader->verifyWithKeySet($jws, $signatureKeyset, 0) === false) {
             throw new RuntimeException('Failed to decode the JWT token.');
         }
 
-        $this->stopwatch->lap('verifyWithKeySet');
+        $this->stopwatch->stop('jwsLoader->verifyWithKeySet');
 
         $jwt = $jws->getPayload();
         if (! is_string($jwt)) {
@@ -111,11 +113,12 @@ class JWTHandler implements AccessTokenHandlerInterface
         $this->stopwatch->lap('$jws->getPayload');
 
         $payload = JsonConverter::decode($jwt);
-        $this->stopwatch->lap('JsonConverter::decode');
-        $this->claimCheckerManager->check($payload, $this->mandatoryClaims);
-        $this->stopwatch->lap('claimCheckerManager->check');
 
-        $this->stopwatch->stop('verifyToken');
+        $this->stopwatch->start('claimCheckerManager->check');
+        $this->claimCheckerManager->check($payload, $this->mandatoryClaims);
+        $this->stopwatch->stop('claimCheckerManager->check');
+
+        $this->stopwatch->stopSection('verifyToken');
 
         return $payload;
     }
