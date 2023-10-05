@@ -85,7 +85,6 @@ class JWTHandler implements AccessTokenHandlerInterface
     private function verify(string $token): array
     {
         $serializer = new JWSCompactSerializer();
-        $this->stopwatch->openSection();
         $this->stopwatch->start('$serializer->unserialize');
         $jws = $serializer->unserialize($token);
         $this->stopwatch->stop('$serializer->unserialize');
@@ -114,8 +113,6 @@ class JWTHandler implements AccessTokenHandlerInterface
         $this->stopwatch->start('claimCheckerManager->check');
         $this->claimCheckerManager->check($payload, $this->mandatoryClaims);
         $this->stopwatch->stop('claimCheckerManager->check');
-
-        $this->stopwatch->stopSection('verifyToken');
 
         return $payload;
     }
