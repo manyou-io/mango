@@ -17,7 +17,6 @@ use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Security\Core\Exception\BadCredentialsException;
 use Symfony\Component\Security\Http\AccessToken\AccessTokenHandlerInterface;
 use Symfony\Component\Security\Http\Authenticator\Passport\Badge\UserBadge;
-use Symfony\Component\Stopwatch\Stopwatch;
 use Throwable;
 
 use function is_string;
@@ -32,7 +31,6 @@ class JWTHandler implements AccessTokenHandlerInterface
         private ClaimCheckerManager $claimCheckerManager,
         #[Autowire(service: 'jose.jws_verifier.access_token')]
         private JWSVerifier $jwsLoader,
-        private Stopwatch $stopwatch,
         #[Autowire(param: 'jose.access_token.mandatory_claims')]
         private array $mandatoryClaims = [],
         private ?LoggerInterface $logger = null,
@@ -85,23 +83,14 @@ class JWTHandler implements AccessTokenHandlerInterface
     private function verify(string $token): array
     {
         $serializer = new JWSCompactSerializer();
-        $this->stopwatch->start('$serializer->unserialize');
+
         $jws = $serializer->unserialize($token);
-        $this->stopwatch->stop('$serializer->unserialize');
-
-        $this->stopwatch->start('signatureHeaderCheckerManager->check');
         $this->signatureHeaderCheckerManager->check($jws, 0);
-        $this->stopwatch->stop('signatureHeaderCheckerManager->check');
 
-        $this->stopwatch->start('loadSignatureKeyset');
         $signatureKeyset = ($this->jwksLoader)();
-        $this->stopwatch->stop('loadSignatureKeyset');
-
-        $this->stopwatch->start('jwsLoader->verifyWithKeySet');
         if ($this->jwsLoader->verifyWithKeySet($jws, $signatureKeyset, 0) === false) {
             throw new RuntimeException('Failed to decode the JWT token.');
         }
-        $this->stopwatch->stop('jwsLoader->verifyWithKeySet');
 
         $jwt = $jws->getPayload();
         if (! is_string($jwt)) {
@@ -109,10 +98,7 @@ class JWTHandler implements AccessTokenHandlerInterface
         }
 
         $payload = JsonConverter::decode($jwt);
-
-        $this->stopwatch->start('claimCheckerManager->check');
         $this->claimCheckerManager->check($payload, $this->mandatoryClaims);
-        $this->stopwatch->stop('claimCheckerManager->check');
 
         return $payload;
     }
