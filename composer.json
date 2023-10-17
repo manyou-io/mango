@@ -18,7 +18,13 @@
         "symfony/monolog-bundle": "^3.8",
         "symfony/security-http": "^6.3",
         "symfony/serializer": "^6.3",
-        "symfony/uid": "^6.3"
+        "symfony/uid": "^6.3",
+        "web-token/jwt-bundle": "^3.2",
+        "web-token/jwt-checker": "^3.2",
+        "web-token/jwt-core": "^3.2",
+        "web-token/jwt-key-mgmt": "^3.2",
+        "web-token/jwt-signature": "^3.2",
+        "web-token/jwt-signature-algorithm-rsa": "^3.2"
     },
     "require-dev": {
         "symfony/yaml": "^6.3",
