@@ -14,7 +14,6 @@ use InvalidArgumentException;
 use Mango\Doctrine\Exception\UnexpectedRowsAffected;
 use Mango\Doctrine\Schema\TableBuilder;
 use Symfony\Component\DependencyInjection\Attribute\TaggedIterator;
-use Symfony\Component\Messenger\MessageBusInterface;
 use UnexpectedValueException;
 
 use function array_keys;
@@ -36,7 +35,6 @@ class SchemaProvider implements SchemaProviderInterface
         private Connection $connection,
         #[TaggedIterator('mango.doctrine.table_builder')]
         private iterable $tableBuilders,
-        private MessageBusInterface $messageBus,
     ) {
         $this->createSchema();
     }
