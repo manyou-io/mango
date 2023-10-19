@@ -22,6 +22,7 @@ use function strtoupper;
 class Table
 {
     private array $columnsByAlias = [];
+    private array $columnsByName  = [];
 
     public function __construct(
         private DBALTable $table,
@@ -30,14 +31,14 @@ class Table
 
     public function getColumn(string $name): Column
     {
-        return $this->columnsByAlias[$name] ?? $this->table->getColumn($name);
+        return $this->columnsByAlias[$name] ?? $this->columnsByName[$name] ?? $this->table->getColumn($name);
     }
 
     public function addColumn($name, $typeName, array $options = [], ?string $alias = null): Column
     {
         $alias ??= $this->toCamelCase($name);
 
-        return $this->columnsByAlias[$alias] =  $this->table->addColumn($name, $typeName, $options);
+        return $this->columnsByAlias[$alias] = $this->columnsByName[$name] = $this->table->addColumn($name, $typeName, $options);
     }
 
     private function toCamelCase(string $name): string
@@ -50,6 +51,11 @@ class Table
     public function getColumnsByAlias(): array
     {
         return $this->columnsByAlias;
+    }
+
+    public function getColumnsByName(): array
+    {
+        return $this->columnsByName;
     }
 
     public function __call($name, $args)
