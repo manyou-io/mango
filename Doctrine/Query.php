@@ -451,7 +451,7 @@ class Query
         return $this;
     }
 
-    private function getQueryResult(): Result
+    public function getQueryResult(): Result
     {
         if (isset($this->result)) {
             return $this->result;
