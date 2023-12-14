@@ -477,21 +477,21 @@ class Query
 
     public function returning(?string ...$selects): self
     {
-        $selectSql = $this->schema->createQuery()
+        $select = $this->schema->createQuery()
             ->from($this->selectTableMap[$this->fromAlias]->getName())
-            ->select(...$selects)
-            ->getSQL();
+            ->select(...$selects);
+        $selectSql = $select->getSQL();
 
         // strlen('SELECT ') === 7
         $returningSql = ' RETURNING ' . substr($selectSql, 7, strpos($selectSql, 'FROM') - 8);
 
-        $this->result = $this->connection->executeQuery(
+        $select->result = $this->connection->executeQuery(
             $this->getSQL() . $returningSql,
             $this->getParameters(),
             $this->getParameterTypes(),
         );
 
-        return $this;
+        return $select;
     }
 
     public function getSQL(): string
