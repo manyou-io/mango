@@ -167,7 +167,7 @@ class Query
         throw new RuntimeException(sprintf('Bulk insert failed: row num (%d) !== records count (%d)', $rowNum, $recordsCount));
     }
 
-    public function getBulkInsertQuery(string $into, array ...$records): int
+    public function getBulkInsertQuery(string $into, array ...$records): array
     {
         if (! isset($records[0])) {
             return 0;
