@@ -156,6 +156,19 @@ class Query
 
     public function bulkInsert(string $into, array ...$records): int
     {
+        [$sql, $params, $types, $recordsCount] = $this->getBulkInsertQuery($into, ...$records);
+
+        $rowNum = $this->connection->executeStatement($sql, $params, $types);
+
+        if ($rowNum === $recordsCount) {
+            return $rowNum;
+        }
+
+        throw new RuntimeException(sprintf('Bulk insert failed: row num (%d) !== records count (%d)', $rowNum, $recordsCount));
+    }
+
+    public function getBulkInsertQuery(string $into, array ...$records): int
+    {
         if (! isset($records[0])) {
             return 0;
         }
@@ -193,13 +206,7 @@ class Query
             ? $this->getBulkInsertSQLForOracle($tableName, $columns, $values, $recordsCount)
             : $this->getBulkInsertSQL($tableName, $columns, $values, $recordsCount);
 
-        $rowNum = $this->connection->executeStatement($sql, $params, $types);
-
-        if ($rowNum === $recordsCount) {
-            return $rowNum;
-        }
-
-        throw new RuntimeException(sprintf('Bulk insert failed: row num (%d) !== records count (%d)', $rowNum, $recordsCount));
+        return [$sql, $params, $types, $recordsCount];
     }
 
     private function getBulkInsertSQL(string $tableName, array $columns, array $values, int $recordsCount): string
