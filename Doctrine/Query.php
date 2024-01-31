@@ -156,19 +156,6 @@ class Query
 
     public function bulkInsert(string $into, array ...$records): int
     {
-        [$sql, $params, $types, $recordsCount] = $this->getBulkInsertQuery($into, ...$records);
-
-        $rowNum = $this->connection->executeStatement($sql, $params, $types);
-
-        if ($rowNum === $recordsCount) {
-            return $rowNum;
-        }
-
-        throw new RuntimeException(sprintf('Bulk insert failed: row num (%d) !== records count (%d)', $rowNum, $recordsCount));
-    }
-
-    public function getBulkInsertQuery(string $into, array ...$records): array
-    {
         if (! isset($records[0])) {
             return 0;
         }
@@ -206,7 +193,13 @@ class Query
             ? $this->getBulkInsertSQLForOracle($tableName, $columns, $values, $recordsCount)
             : $this->getBulkInsertSQL($tableName, $columns, $values, $recordsCount);
 
-        return [$sql, $params, $types, $recordsCount];
+        $rowNum = $this->connection->executeStatement($sql, $params, $types);
+
+        if ($rowNum === $recordsCount) {
+            return $rowNum;
+        }
+
+        throw new RuntimeException(sprintf('Bulk insert failed: row num (%d) !== records count (%d)', $rowNum, $recordsCount));
     }
 
     private function getBulkInsertSQL(string $tableName, array $columns, array $values, int $recordsCount): string
@@ -485,7 +478,7 @@ class Query
     public function returning(?string ...$selects): self
     {
         $select = $this->schema->createQuery()
-            ->from($this->selectTableMap[$this->fromAlias]->getName())
+            ->from($this->selectTableMap[$this->fromAlias]->getName(), $this->fromAlias)
             ->select(...$selects);
         $selectSql = $select->getSQL();
 

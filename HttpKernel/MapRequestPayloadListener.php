@@ -29,10 +29,6 @@ class MapRequestPayloadListener
     {
         $request = $event->getRequest();
 
-        if (! $routeParams = $request->attributes->get('_route_params', [])) {
-            return;
-        }
-
         $arguments = $event->getArguments();
 
         foreach ($arguments as $i => $argument) {
@@ -40,17 +36,29 @@ class MapRequestPayloadListener
                 continue;
             }
 
-            $groups = $argument->serializationContext['groups'] ?? [];
-
-            if ($groups !== [] && ! in_array('route', $groups, true)) {
+            if ($argument->disabled) {
                 continue;
             }
 
-            $object = $this->denormalizer->denormalize(
-                $routeParams,
-                $argument->metadata->getType(),
-                context: ['groups' => ['route']] + $argument->serializationContext,
-            );
+            if (str_ends_with($name = $argument->metadata->getName(), 'Payload')) {
+                $object = $event->getNamedArguments()[substr($name, 0, -7)] ?? null;
+            } else if ($routeParams = $request->attributes->get('_route_params', [])) {
+                $groups = $argument->serializationContext['groups'] ?? [];
+
+                if ($groups !== [] && ! in_array('route', $groups, true)) {
+                    continue;
+                }
+    
+                $object = $this->denormalizer->denormalize(
+                    $routeParams,
+                    $argument->metadata->getType(),
+                    context: ['groups' => ['route']] + $argument->serializationContext,
+                );
+            }
+
+            if (!isset($object)) {
+                continue;
+            }
 
             $attribute = new MapRequestPayload(
                 $argument->acceptFormat,
