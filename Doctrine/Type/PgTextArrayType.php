@@ -9,9 +9,9 @@ use Doctrine\DBAL\Types\ConversionException;
 use Doctrine\DBAL\Types\Type;
 use JsonException;
 
-class PgArrayType extends Type
+class PgTextArrayType extends Type
 {
-    public const NAME = 'pg_array';
+    public const NAME = 'pg_text_array';
 
     public function getName(): string
     {
@@ -25,12 +25,12 @@ class PgArrayType extends Type
 
     public function convertToPHPValueSQL($sqlExpr, $platform): string
     {
-        return $sqlExpr;
+        return sprintf('array_to_json(%s)', $sqlExpr);
     }
 
     public function convertToDatabaseValueSQL($sqlExpr, AbstractPlatform $platform): string
     {
-        return $sqlExpr;
+        return sprintf('jsonb_array_to_text_array(%s)', $sqlExpr);
     }
 
     /**
