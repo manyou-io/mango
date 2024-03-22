@@ -467,7 +467,10 @@ class Query
     public function queryWithWriteLock(): self
     {
         $this->result = $this->connection->executeQuery(
-            $this->getSQL() . ' ' . $this->connection->getDatabasePlatform()->getWriteLockSQL(),
+            // TODO: Find replacement for the deprecation:
+            // The methods `AbstractPlatform::getReadLockSQL()`, `::getWriteLockSQL()` and `::getForUpdateSQL()` have been removed
+            // Use `QueryBuilder::forUpdate()` as a replacement for the latter.
+            $this->getSQL() . ' FOR UPDATE',
             $this->getParameters(),
             $this->getParameterTypes(),
         );
@@ -480,6 +483,7 @@ class Query
         $select = $this->schema->createQuery()
             ->from($this->selectTableMap[$this->fromAlias]->getName(), $this->fromAlias)
             ->select(...$selects);
+
         $selectSql = $select->getSQL();
 
         // strlen('SELECT ') === 7

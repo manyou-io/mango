@@ -14,8 +14,10 @@ use InvalidArgumentException;
 use Symfony\Component\Uid\AbstractUid;
 
 use function bin2hex;
+use function get_debug_type;
 use function is_resource;
 use function is_string;
+use function sprintf;
 use function stream_get_contents;
 
 abstract class AbstractUidType extends Type
@@ -46,13 +48,13 @@ abstract class AbstractUidType extends Type
         }
 
         if (! is_string($value)) {
-            throw ConversionException::conversionFailedInvalidType($value, static::class, ['null', 'string', $this->getUidClass()]);
+            throw new ConversionException(sprintf('Expected %s, got %s', $this->getUidClass(), get_debug_type($value)));
         }
 
         try {
             return $this->getUidClass()::fromString($value);
         } catch (InvalidArgumentException $e) {
-            throw ConversionException::conversionFailed($value, static::class, $e);
+            throw new ConversionException($e->getMessage(), $e->getCode(), $e);
         }
     }
 
@@ -91,7 +93,7 @@ abstract class AbstractUidType extends Type
             return $this->getUidClass()::fromString($value);
         }
 
-        throw ConversionException::conversionFailedInvalidType($value, static::class, ['null', 'string', $this->getUidClass()]);
+        throw new ConversionException(sprintf('Expected %s, got %s', $this->getUidClass(), get_debug_type($value)));
     }
 
     public function requiresSQLCommentHint(AbstractPlatform $platform): bool

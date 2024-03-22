@@ -14,7 +14,9 @@ use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
 use Doctrine\DBAL\Types\ConversionException;
 use Doctrine\DBAL\Types\Type;
 
+use function get_debug_type;
 use function is_a;
+use function sprintf;
 
 abstract class AbstractUsDateTimeType extends Type
 {
@@ -23,7 +25,7 @@ abstract class AbstractUsDateTimeType extends Type
         return match (true) {
             $platform instanceof AbstractMySQLPlatform => 'DATETIME(6)',
             $platform instanceof PostgreSQLPlatform => 'timestamp',
-            default => throw Exception::notSupported(__METHOD__),
+            default => throw new Exception('Platform not supported'),
         };
     }
 
@@ -40,7 +42,7 @@ abstract class AbstractUsDateTimeType extends Type
             return $value->format($this->getFormat($platform));
         }
 
-        throw ConversionException::conversionFailedInvalidType($value, static::class, ['null', DateTimeInterface::class]);
+        throw new ConversionException(sprintf('Expected %s, got %s', DateTimeInterface::class, get_debug_type($value)));
     }
 
     private function getFormat(AbstractPlatform $platform): string
@@ -48,7 +50,7 @@ abstract class AbstractUsDateTimeType extends Type
         return match (true) {
             $platform instanceof AbstractMySQLPlatform => 'Y-m-d H:i:s.u',
             $platform instanceof PostgreSQLPlatform => 'Y-m-d H:i:s.u',
-            default => throw Exception::notSupported(__METHOD__),
+            default => throw new Exception('Platform not supported'),
         };
     }
 
@@ -73,7 +75,7 @@ abstract class AbstractUsDateTimeType extends Type
         }
 
         if ($val === false) {
-            throw ConversionException::conversionFailedFormat($value, static::class, $format);
+            throw new ConversionException('Failed to convert value to ' . $this->getClassName());
         }
 
         return $val;

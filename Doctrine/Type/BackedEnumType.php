@@ -47,7 +47,7 @@ trait BackedEnumType
         try {
             return $this->doConvertToDatabaseValue($value, $platform);
         } catch (ConversionException $e) {
-            throw ConversionException::conversionFailedInvalidType($value, $this::class, ['null', $className], $e);
+            throw new ConversionException(sprintf('Failed to convert value to %s: %s', $className, $e->getMessage()), $e->getCode(), $e);
         }
     }
 

@@ -30,7 +30,7 @@ class TinyIntType extends Type
         };
     }
 
-    public function getBindingType(): int
+    public function getBindingType(): ParameterType
     {
         return ParameterType::INTEGER;
     }

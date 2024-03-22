@@ -9,6 +9,15 @@ use Doctrine\DBAL\Types\ConversionException;
 use Doctrine\DBAL\Types\Type;
 use JsonException;
 
+use function is_resource;
+use function json_decode;
+use function json_encode;
+use function sprintf;
+use function stream_get_contents;
+
+use const JSON_PRESERVE_ZERO_FRACTION;
+use const JSON_THROW_ON_ERROR;
+
 class PgTextArrayType extends Type
 {
     public const NAME = 'pg_text_array';
@@ -18,7 +27,7 @@ class PgTextArrayType extends Type
         return self::NAME;
     }
 
-    public function getSQLDeclaration(array $column, AbstractPlatform $platform)
+    public function getSQLDeclaration(array $column, AbstractPlatform $platform): string
     {
         return 'text[]';
     }
@@ -51,7 +60,7 @@ class PgTextArrayType extends Type
         try {
             return json_encode($value, JSON_THROW_ON_ERROR | JSON_PRESERVE_ZERO_FRACTION);
         } catch (JsonException $e) {
-            throw ConversionException::conversionFailedSerialization($value, 'json', $e->getMessage(), $e);
+            throw new ConversionException($e->getMessage(), $e->getCode(), $e);
         }
     }
 
@@ -71,7 +80,7 @@ class PgTextArrayType extends Type
         try {
             return json_decode($value, true, 512, JSON_THROW_ON_ERROR);
         } catch (JsonException $e) {
-            throw ConversionException::conversionFailed($value, $this->getName(), $e);
+            throw new ConversionException($e->getMessage(), $e->getCode(), $e);
         }
     }
 }
