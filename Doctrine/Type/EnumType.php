@@ -21,12 +21,12 @@ trait EnumType
         convertToDatabaseValue as convertValueToId;
     }
 
-    public function convertToPHPValueSQL($sqlExpr, $platform): string
+    public function convertToPHPValueSQL(string $sqlExpr, AbstractPlatform $platform): string
     {
         return $this->usingTinyInt($platform) ? $this->caseWhenSQL($sqlExpr, $platform) : $sqlExpr;
     }
 
-    public function convertToDatabaseValue($value, AbstractPlatform $platform): int|string|null
+    public function convertToDatabaseValue(mixed $value, AbstractPlatform $platform): int|string|null
     {
         $id = $this->convertValueToId($value, $platform);
 

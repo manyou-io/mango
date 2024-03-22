@@ -38,7 +38,7 @@ trait BackedEnumType
         return $enum->value;
     }
 
-    public function convertToDatabaseValue($value, AbstractPlatform $platform): int|string|null
+    public function convertToDatabaseValue(mixed $value, AbstractPlatform $platform): int|string|null
     {
         if (is_a($value, $className = $this->getEnumClass(), false)) {
             $value = self::getEnumValue($value);
@@ -51,7 +51,7 @@ trait BackedEnumType
         }
     }
 
-    public function convertToPHPValue($value, AbstractPlatform $platform): ?BackedEnum
+    public function convertToPHPValue(mixed $value, AbstractPlatform $platform): ?BackedEnum
     {
         if ($value === null) {
             return null;

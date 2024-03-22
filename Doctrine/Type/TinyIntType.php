@@ -35,7 +35,7 @@ class TinyIntType extends Type
         return ParameterType::INTEGER;
     }
 
-    public function convertToPHPValue($value, AbstractPlatform $platform): mixed
+    public function convertToPHPValue(mixed $value, AbstractPlatform $platform): mixed
     {
         return $value === null ? null : (int) $value;
     }

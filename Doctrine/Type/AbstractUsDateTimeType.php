@@ -29,7 +29,7 @@ abstract class AbstractUsDateTimeType extends Type
         };
     }
 
-    public function convertToDatabaseValue($value, AbstractPlatform $platform): mixed
+    public function convertToDatabaseValue(mixed $value, AbstractPlatform $platform): mixed
     {
         if ($value === null) {
             return $value;
@@ -60,7 +60,7 @@ abstract class AbstractUsDateTimeType extends Type
 
     abstract protected function createDate(string $datetime): mixed;
 
-    public function convertToPHPValue($value, AbstractPlatform $platform): mixed
+    public function convertToPHPValue(mixed $value, AbstractPlatform $platform): mixed
     {
         if ($value === null || is_a($value, $this->getClassName())) {
             return $value;

@@ -32,26 +32,17 @@ class PgTextArrayType extends Type
         return 'text[]';
     }
 
-    public function convertToPHPValueSQL($sqlExpr, $platform): string
+    public function convertToPHPValueSQL(string $sqlExpr, AbstractPlatform $platform): string
     {
         return sprintf('array_to_json(%s)', $sqlExpr);
     }
 
-    public function convertToDatabaseValueSQL($sqlExpr, AbstractPlatform $platform): string
+    public function convertToDatabaseValueSQL(string $sqlExpr, AbstractPlatform $platform): string
     {
         return sprintf('jsonb_array_to_text_array(%s)', $sqlExpr);
     }
 
-    /**
-     * {@inheritDoc}
-     *
-     * @param T $value
-     *
-     * @return (T is null ? null : string)
-     *
-     * @template T
-     */
-    public function convertToDatabaseValue($value, AbstractPlatform $platform)
+    public function convertToDatabaseValue(mixed $value, AbstractPlatform $platform): mixed
     {
         if ($value === null) {
             return null;
@@ -64,10 +55,7 @@ class PgTextArrayType extends Type
         }
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    public function convertToPHPValue($value, AbstractPlatform $platform)
+    public function convertToPHPValue(mixed $value, AbstractPlatform $platform): mixed
     {
         if ($value === null || $value === '') {
             return null;

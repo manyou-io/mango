@@ -36,7 +36,7 @@ class LogLevelType extends Type
         ];
     }
 
-    public function convertToDatabaseValue($value, AbstractPlatform $platform): int|string|null
+    public function convertToDatabaseValue(mixed $value, AbstractPlatform $platform): int|string|null
     {
         if ($value instanceof Level) {
             $value = $value->toPsrLogLevel();

@@ -58,7 +58,7 @@ abstract class AbstractUidType extends Type
         }
     }
 
-    public function convertToDatabaseValue($value, AbstractPlatform $platform): ?string
+    public function convertToDatabaseValue(mixed $value, AbstractPlatform $platform): ?string
     {
         $value = $this->convertToAbstractUid($value);
 
@@ -71,7 +71,7 @@ abstract class AbstractUidType extends Type
         };
     }
 
-    public function convertToDatabaseValueSQL($sqlExpr, AbstractPlatform $platform): string
+    public function convertToDatabaseValueSQL(string $sqlExpr, AbstractPlatform $platform): string
     {
         return match (true) {
             $platform instanceof OraclePlatform => 'HEXTORAW(' . $sqlExpr . ')',
@@ -79,7 +79,7 @@ abstract class AbstractUidType extends Type
         };
     }
 
-    private function convertToAbstractUid($value): ?AbstractUid
+    private function convertToAbstractUid(mixed $value): ?AbstractUid
     {
         if ($value instanceof AbstractUid) {
             return $value;

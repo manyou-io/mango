@@ -15,7 +15,7 @@ trait TinyIntMapping
 
     abstract private function getValueMap(): array;
 
-    public function convertToPHPValueSQL($sqlExpr, $platform): string
+    public function convertToPHPValueSQL(string $sqlExpr, AbstractPlatform $platform): string
     {
         $sql = 'CASE ';
 
