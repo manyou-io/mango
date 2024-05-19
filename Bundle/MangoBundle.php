@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Mango\Bundle;
 
 use Doctrine\Migrations\Provider\SchemaProvider as SchemaProviderInterface;
-use Mango\DependencyInjection\DoctrineEnableSavepointPass;
 use Mango\DependencyInjection\DoctrineMigrationsDependencyPass;
 use Mango\DependencyInjection\DoctrineTypePass;
 use Mango\DependencyInjection\HttpKernelControllerPass;
@@ -35,8 +34,6 @@ class MangoBundle extends AbstractBundle
         $container->addCompilerPass(
             new DoctrineMigrationsDependencyPass([SchemaProviderInterface::class => SchemaProvider::class]),
         );
-
-        $container->addCompilerPass(new DoctrineEnableSavepointPass());
     }
 
     public function prependExtension(ContainerConfigurator $container, ContainerBuilder $builder): void
