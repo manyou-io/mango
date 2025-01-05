@@ -7,7 +7,7 @@ namespace Mango\Tests\Doctrine\Type;
 use Doctrine\DBAL\Platforms\MariaDBPlatform;
 use Doctrine\DBAL\Platforms\OraclePlatform;
 use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
-use Doctrine\DBAL\Platforms\SqlitePlatform;
+use Doctrine\DBAL\Platforms\SQLitePlatform;
 use Mango\Doctrine\Type\UlidType;
 use Mango\Doctrine\Type\UuidType;
 use PHPUnit\Framework\TestCase;
@@ -33,7 +33,7 @@ class UidTypeTest extends TestCase
         $postgres = new PostgreSQLPlatform();
         $mariadb  = new MariaDBPlatform();
         $oracle   = new OraclePlatform();
-        $sqlite   = new SqlitePlatform();
+        $sqlite   = new SQLitePlatform();
 
         $this->assertValues(
             static fn ($platform) => $uuidType->getSQLDeclaration([], $platform),

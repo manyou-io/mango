@@ -31,7 +31,7 @@ abstract class AbstractUidType extends Type
             $platform instanceof PostgreSQLPlatform => 'UUID',
             $platform instanceof MariaDBPlatform => 'UUID',
             default => $platform->getBinaryTypeDeclarationSQL([
-                'length' => '16',
+                'length' => 16,
                 'fixed' => true,
             ]),
         };

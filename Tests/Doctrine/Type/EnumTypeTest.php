@@ -7,7 +7,7 @@ namespace Mango\Tests\Doctrine\Type;
 use Doctrine\DBAL\Platforms\MariaDBPlatform;
 use Doctrine\DBAL\Platforms\OraclePlatform;
 use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
-use Doctrine\DBAL\Platforms\SqlitePlatform;
+use Doctrine\DBAL\Platforms\SQLitePlatform;
 use Doctrine\DBAL\Types\ConversionException;
 use Doctrine\DBAL\Types\Type;
 use Mango\Doctrine\Type\BackedEnumType;
@@ -69,7 +69,7 @@ class EnumTypeTest extends TestCase
         $postgres = new PostgreSQLPlatform();
         $mariadb  = new MariaDBPlatform();
         $oracle   = new OraclePlatform();
-        $sqlite   = new SqlitePlatform();
+        $sqlite   = new SQLitePlatform();
 
         $this->assertValues(
             static fn ($platform) => $type->getSQLDeclaration([], $platform),

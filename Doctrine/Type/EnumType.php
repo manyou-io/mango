@@ -8,7 +8,7 @@ use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Platforms\OraclePlatform;
 use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
-use Doctrine\DBAL\Platforms\SqlitePlatform;
+use Doctrine\DBAL\Platforms\SQLitePlatform;
 use Doctrine\DBAL\Platforms\SQLServerPlatform;
 
 use function array_map;
@@ -58,7 +58,7 @@ trait EnumType
     {
         return match (true) {
             $platform instanceof SQLServerPlatform => 'TINYINT',
-            $platform instanceof SqlitePlatform => 'INTEGER',
+            $platform instanceof SQLitePlatform => 'INTEGER',
             default => $platform->getSmallIntTypeDeclarationSQL(['unsigned' => true]),
         };
     }

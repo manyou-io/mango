@@ -69,14 +69,6 @@ class SchemaProvider implements SchemaProviderInterface
 
         $schema = new Schema(schemaConfig: $schemaManager->createSchemaConfig());
 
-        if ($schemaManager instanceof PostgreSQLSchemaManager) {
-            foreach ($schemaManager->listSchemaNames() as $namespace) {
-                if (! $schema->hasNamespace($namespace)) {
-                    $schema->createNamespace($namespace);
-                }
-            }
-        }
-
         foreach ($this->tableBuilders as $tableBuilder) {
             $table = new Table($schema->createTable($name = $tableBuilder->getName()));
             $tableBuilder->build($table);
